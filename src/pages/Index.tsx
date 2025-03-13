@@ -1,12 +1,134 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { Link } from 'react-router-dom';
+import { ArrowRight, BarChart3, Check, ThumbsUp, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import Navbar from '@/components/Navbar';
+import CategoryCard from '@/components/CategoryCard';
+import { getApprovedCategories } from '@/lib/data';
 
 const Index = () => {
+  // Get the first 4 categories to display
+  const featuredCategories = getApprovedCategories().slice(0, 4);
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      
+      {/* Hero Section */}
+      <section className="py-16 px-4 bg-gradient-to-br from-brand-purple/5 to-brand-teal/5">
+        <div className="container mx-auto max-w-5xl text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-brand-purple to-brand-teal bg-clip-text text-transparent">
+            Vote for your favorites, worldwide
+          </h1>
+          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+            Categlorium lets you vote on the best products, brands, and more across thousands of categories. Discover what's popular and add your voice.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild size="lg" className="bg-brand-purple hover:bg-brand-purple/90">
+              <Link to="/categories">Browse Categories</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <Link to="/submit">Submit New Category</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+      
+      {/* Featured Categories */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">Featured Categories</h2>
+            <Link 
+              to="/categories" 
+              className="text-brand-purple hover:text-brand-purple/80 flex items-center text-sm font-medium"
+            >
+              View all categories
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredCategories.map((category) => (
+              <CategoryCard key={category.id} category={category} />
+            ))}
+          </div>
+        </div>
+      </section>
+      
+      {/* How It Works */}
+      <section className="py-16 px-4 bg-gray-50">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-2xl font-bold text-gray-900 mb-12 text-center">How Categlorium Works</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="bg-brand-purple/10 rounded-full w-12 h-12 mx-auto mb-4 flex items-center justify-center">
+                  <ThumbsUp className="h-6 w-6 text-brand-purple" />
+                </div>
+                <h3 className="text-lg font-bold mb-2">Vote on Categories</h3>
+                <p className="text-gray-600">
+                  Cast your vote on thousands of items across different categories. One vote per category ensures fairness.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="bg-brand-purple/10 rounded-full w-12 h-12 mx-auto mb-4 flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-brand-purple" />
+                </div>
+                <h3 className="text-lg font-bold mb-2">View Rankings</h3>
+                <p className="text-gray-600">
+                  See real-time results and discover which items are most popular among users worldwide.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <div className="bg-brand-purple/10 rounded-full w-12 h-12 mx-auto mb-4 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-brand-purple" />
+                </div>
+                <h3 className="text-lg font-bold mb-2">Submit Categories</h3>
+                <p className="text-gray-600">
+                  Don't see what you're looking for? Suggest new categories and items for others to vote on.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+      
+      {/* CTA Section */}
+      <section className="py-16 px-4 bg-gradient-to-r from-brand-purple to-brand-teal text-white">
+        <div className="container mx-auto max-w-4xl text-center">
+          <h2 className="text-3xl font-bold mb-6">Ready to start voting?</h2>
+          <p className="text-lg mb-8 opacity-90">
+            Join thousands of users and help determine the best in every category.
+          </p>
+          <Button asChild size="lg" variant="secondary" className="bg-white text-brand-purple hover:bg-gray-100">
+            <Link to="/categories">Start Exploring</Link>
+          </Button>
+        </div>
+      </section>
+      
+      {/* Footer */}
+      <footer className="py-8 px-4 bg-gray-900 text-gray-400 mt-auto">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex items-center space-x-2 mb-4 md:mb-0">
+              <BarChart className="h-5 w-5 text-brand-teal" />
+              <span className="text-lg font-bold text-white">Categlorium</span>
+            </div>
+            <div className="text-sm">
+              &copy; {new Date().getFullYear()} Categlorium. All rights reserved.
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
