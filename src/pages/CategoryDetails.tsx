@@ -52,10 +52,10 @@ const CategoryDetails = () => {
   
   // Sponsored product data - in a real app this would come from an API
   const sponsoredProduct = {
-    title: "Premium Sneakers",
-    description: "Ultra-comfortable design with advanced cushioning technology",
-    imageUrl: "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=2560&auto=format&fit=crop",
-    targetUrl: "https://example.com/premium-sneakers",
+    title: "Premium " + (category?.name || "Product"),
+    description: "Ultra-comfortable design with advanced features. Limited time offer.",
+    imageUrl: category?.items[0]?.imageUrl || "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=2560&auto=format&fit=crop",
+    targetUrl: "https://example.com/premium-product",
     category: category?.name || "Products"
   };
   
@@ -130,21 +130,25 @@ const CategoryDetails = () => {
           
           <div className="space-y-6">
             {items.map((item, index) => {
-              // Insert the sponsored product after the second item (at position 3)
+              // Insert sponsored product after the second item (at position 3)
               if (index === 2) {
                 return (
-                  <div key={`sponsored-${index}`} className="space-y-6">
-                    <ItemCard 
-                      key={item.id}
-                      item={item}
-                      categoryId={category.id}
-                      rank={index + 1}
-                      onVote={handleVote}
-                      userVotedItemId={userVotedItemId}
-                    />
+                  <div key={`sponsored-${item.id}`} className="space-y-6">
                     <div className="relative">
+                      <ItemCard 
+                        item={item}
+                        categoryId={category.id}
+                        rank={index + 1}
+                        onVote={handleVote}
+                        userVotedItemId={userVotedItemId}
+                      />
+                    </div>
+                    
+                    <div className="relative rounded-lg overflow-hidden border border-brand-purple/20 bg-gradient-to-r from-brand-purple/5 to-brand-teal/5">
+                      <div className="absolute top-0 left-0 bg-brand-purple text-white text-xs font-bold py-1 px-3 rounded-br-lg">
+                        Sponsored
+                      </div>
                       <AdCard 
-                        key="sponsored-ad"
                         title={sponsoredProduct.title}
                         description={sponsoredProduct.description}
                         imageUrl={sponsoredProduct.imageUrl}
@@ -155,6 +159,7 @@ const CategoryDetails = () => {
                   </div>
                 );
               }
+              
               return (
                 <ItemCard 
                   key={item.id}

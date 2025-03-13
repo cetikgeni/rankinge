@@ -7,32 +7,49 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getApprovedCategories } from '@/lib/data';
 import { Category } from '@/lib/types';
+import { Progress } from '@/components/ui/progress';
 
 interface TimeLeft {
   days: number;
   hours: number;
   minutes: number;
   seconds: number;
+  totalSeconds: number;
+  maxSeconds: number;
 }
 
 const CountdownTimer = ({ timeLeft }: { timeLeft: TimeLeft }) => {
+  // Calculate progress percentage for the timer
+  const progressPercentage = Math.max(0, 100 - (timeLeft.totalSeconds / timeLeft.maxSeconds * 100));
+  
   return (
-    <div className="flex space-x-4 mt-4 md:mt-0">
-      <div className="text-center">
-        <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.days}</div>
-        <div className="text-xs mt-1">Days</div>
+    <div className="flex flex-col w-full">
+      <div className="flex space-x-4 mt-4 md:mt-0 justify-center md:justify-start">
+        <div className="text-center">
+          <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.days}</div>
+          <div className="text-xs mt-1">Days</div>
+        </div>
+        <div className="text-center">
+          <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.hours}</div>
+          <div className="text-xs mt-1">Hours</div>
+        </div>
+        <div className="text-center">
+          <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.minutes}</div>
+          <div className="text-xs mt-1">Mins</div>
+        </div>
+        <div className="text-center">
+          <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.seconds}</div>
+          <div className="text-xs mt-1">Secs</div>
+        </div>
       </div>
-      <div className="text-center">
-        <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.hours}</div>
-        <div className="text-xs mt-1">Hours</div>
-      </div>
-      <div className="text-center">
-        <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.minutes}</div>
-        <div className="text-xs mt-1">Mins</div>
-      </div>
-      <div className="text-center">
-        <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.seconds}</div>
-        <div className="text-xs mt-1">Secs</div>
+      
+      {/* Progress bar for visual representation of time left */}
+      <div className="mt-4 w-full">
+        <Progress value={progressPercentage} className="h-2" />
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>Contest started</span>
+          <span>Contest ends</span>
+        </div>
       </div>
     </div>
   );
@@ -43,7 +60,9 @@ const LimitedTimeContest = () => {
     days: 0,
     hours: 0,
     minutes: 0,
-    seconds: 0
+    seconds: 0,
+    totalSeconds: 0,
+    maxSeconds: 7 * 24 * 60 * 60 // 7 days in seconds
   });
   
   // For demo purposes, we'll use the first category from our data
@@ -57,13 +76,22 @@ const LimitedTimeContest = () => {
       contestEndDate.setDate(contestEndDate.getDate() + 7);
       
       const difference = contestEndDate.getTime() - new Date().getTime();
+      const maxSeconds = 7 * 24 * 60 * 60; // 7 days in seconds
       
       if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((difference / (1000 * 60)) % 60);
+        const seconds = Math.floor((difference / 1000) % 60);
+        const totalSeconds = Math.floor(difference / 1000);
+        
         setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / (1000 * 60)) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
+          days,
+          hours,
+          minutes,
+          seconds,
+          totalSeconds,
+          maxSeconds
         });
       }
     };
@@ -84,9 +112,9 @@ const LimitedTimeContest = () => {
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Limited-Time Contest</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">Vote for your favorite {contestCategory.name} to win the trophy! The winner will be featured on our homepage.</p>
           
-          <div className="mt-6 inline-flex items-center justify-center p-4 bg-white rounded-lg shadow-sm border border-gray-100">
-            <div className="flex flex-col md:flex-row items-center gap-4">
-              <div className="flex items-center">
+          <div className="mt-6 inline-flex items-center justify-center p-4 bg-white rounded-lg shadow-sm border border-gray-100 w-full max-w-md">
+            <div className="flex flex-col md:flex-row items-center w-full">
+              <div className="flex items-center mb-4 md:mb-0 md:mr-6">
                 <Timer className="h-5 w-5 text-brand-purple mr-2" />
                 <span className="text-gray-700 font-medium">Contest ends in:</span>
               </div>
