@@ -6,8 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import CategoryCard from '@/components/CategoryCard';
 import { getApprovedCategories } from '@/lib/data';
-import { Badge } from '@/components/ui/badge';
 import { getAllCategoryIcons } from '@/lib/category-icons';
+import CategorySearch from '@/components/CategorySearch';
+import SponsoredSection from '@/components/SponsoredSection';
+import LimitedTimeContest from '@/components/LimitedTimeContest';
 
 const Index = () => {
   // Get the first 4 categories to display
@@ -38,12 +40,23 @@ const Index = () => {
         </div>
       </section>
 
-      {/* All Categories Section */}
+      {/* Sponsored Products Section */}
+      <SponsoredSection />
+      
+      {/* Limited Time Contest Section */}
+      <LimitedTimeContest />
+      
+      {/* Categories Search & Browse Section */}
       <section className="py-16 px-4 bg-gray-50">
         <div className="container mx-auto max-w-6xl">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">All Categories</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Browse All Categories</h2>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {/* Search Box */}
+          <div className="mb-10">
+            <CategorySearch />
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {allCategoryIcons.map((categoryGroup) => (
               <div key={categoryGroup.name} className="mb-8">
                 <h3 className="text-lg font-bold mb-4 text-gray-800 flex items-center">
@@ -51,7 +64,7 @@ const Index = () => {
                   {categoryGroup.name}
                 </h3>
                 <ul className="space-y-2">
-                  {categoryGroup.subcategories.map((subCategory) => (
+                  {categoryGroup.subcategories.slice(0, 6).map((subCategory) => (
                     <li key={subCategory.name}>
                       <Link 
                         to={`/categories?filter=${subCategory.name.toLowerCase()}`}
@@ -62,6 +75,16 @@ const Index = () => {
                       </Link>
                     </li>
                   ))}
+                  {categoryGroup.subcategories.length > 6 && (
+                    <li className="pt-1">
+                      <Link 
+                        to={`/categories?group=${categoryGroup.name.toLowerCase()}`}
+                        className="text-brand-purple hover:text-brand-purple/80 text-sm font-medium"
+                      >
+                        + {categoryGroup.subcategories.length - 6} more
+                      </Link>
+                    </li>
+                  )}
                 </ul>
               </div>
             ))}
