@@ -1,5 +1,4 @@
-
-import { User, Category, Item } from './types';
+import { User, Category, Item, CategorySubmission } from './types';
 
 // Demo users
 export const users: User[] = [

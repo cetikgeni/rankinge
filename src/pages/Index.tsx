@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, Check, ThumbsUp, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -120,7 +119,7 @@ const Index = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <BarChart className="h-5 w-5 text-brand-teal" />
+              <BarChart3 className="h-5 w-5 text-brand-teal" />
               <span className="text-lg font-bold text-white">Categlorium</span>
             </div>
             <div className="text-sm">
