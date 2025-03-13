@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, Check, ThumbsUp, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,10 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import CategoryCard from '@/components/CategoryCard';
 import { getApprovedCategories } from '@/lib/data';
+import { Badge } from '@/components/ui/badge';
+import { getAllCategoryIcons } from '@/lib/category-icons';
 
 const Index = () => {
   // Get the first 4 categories to display
   const featuredCategories = getApprovedCategories().slice(0, 4);
+  const allCategoryIcons = getAllCategoryIcons();
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -30,6 +34,37 @@ const Index = () => {
             <Button asChild variant="outline" size="lg">
               <Link to="/submit">Submit New Category</Link>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* All Categories Section */}
+      <section className="py-16 px-4 bg-gray-50">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">All Categories</h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {allCategoryIcons.map((categoryGroup) => (
+              <div key={categoryGroup.name} className="mb-8">
+                <h3 className="text-lg font-bold mb-4 text-gray-800 flex items-center">
+                  <categoryGroup.icon className="mr-2 h-5 w-5 text-brand-purple" />
+                  {categoryGroup.name}
+                </h3>
+                <ul className="space-y-2">
+                  {categoryGroup.subcategories.map((subCategory) => (
+                    <li key={subCategory.name}>
+                      <Link 
+                        to={`/categories?filter=${subCategory.name.toLowerCase()}`}
+                        className="text-gray-600 hover:text-brand-purple transition-colors flex items-center text-sm"
+                      >
+                        <subCategory.icon className="mr-2 h-4 w-4 text-gray-400" />
+                        {subCategory.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>

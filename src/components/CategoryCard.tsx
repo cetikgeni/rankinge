@@ -15,6 +15,20 @@ const CategoryCard = ({ category }: CategoryCardProps) => {
   // Get top 3 items
   const topItems = sortedItems.slice(0, 3);
   
+  // Badge colors for top 3 items
+  const getTopItemBadgeColor = (index: number) => {
+    switch (index) {
+      case 0:
+        return "bg-amber-100 text-amber-800 border-amber-200"; // Gold for 1st
+      case 1:
+        return "bg-gray-100 text-gray-800 border-gray-200"; // Silver for 2nd
+      case 2:
+        return "bg-orange-100 text-orange-800 border-orange-200"; // Bronze for 3rd
+      default:
+        return "bg-gray-50"; // Default for the rest
+    }
+  };
+  
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md h-full flex flex-col">
       <div className="relative h-48 overflow-hidden">
@@ -42,10 +56,10 @@ const CategoryCard = ({ category }: CategoryCardProps) => {
             <p className="text-xs font-medium text-gray-500 uppercase mb-2">Top Items</p>
             {topItems.map((item, index) => (
               <div key={item.id} className="flex justify-between items-center text-sm">
-                <span className="text-gray-800">
+                <span className={`text-gray-800 ${index === 0 ? 'font-medium' : ''}`}>
                   {index + 1}. {item.name}
                 </span>
-                <Badge variant="outline" className="bg-gray-50">
+                <Badge variant="outline" className={getTopItemBadgeColor(index)}>
                   {item.voteCount} votes
                 </Badge>
               </div>
