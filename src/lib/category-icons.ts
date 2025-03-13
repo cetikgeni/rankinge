@@ -1,11 +1,10 @@
-
 import {
   ShoppingBag, Coffee, Utensils, LucideIcon, Shirt, Car, Laptop, Plane,
   Smartphone, Headphones, Book, Camera, Monitor, Dumbbell, Watch, Gamepad,
-  Home, Brush, Baby, Gift, Wine, Microphone, Music, 
-  Briefcase, School, Building, Leaf, Flask, Heart, Pill, Dog, Flower, Cloud,
-  Sun, Umbrella, Tree, Fish, Bike, BarChart, Trophy, Palette, PenTool,
-  Tv, Dice, TrendingUp, Zap, Scissors
+  Home, Brush, Baby, Gift, Wine, Mic, Music, 
+  Briefcase, School, Building, Leaf, Beaker, Heart, Pill, Dog, Flower, Cloud,
+  Sun, Umbrella, Trees, Fish, Bike, BarChart3, Trophy, Palette, PenTool,
+  Tv, Dice1, TrendingUp, Zap, Scissors
 } from 'lucide-react';
 
 export interface SubCategory {
@@ -156,13 +155,13 @@ export const getAllCategoryIcons = (): CategoryGroup[] => {
         { name: 'Music Services', icon: Music },
         { name: 'Movie Studios', icon: Tv },
         { name: 'Gaming Studios', icon: Gamepad },
-        { name: 'Board Games', icon: Dice },
+        { name: 'Board Games', icon: Dice1 },
         { name: 'Book Publishers', icon: Book },
         { name: 'Music Labels', icon: Music },
-        { name: 'Concert Venues', icon: Microphone },
+        { name: 'Concert Venues', icon: Mic },
         { name: 'VR Experiences', icon: Tv },
         { name: 'Comics & Graphic Novels', icon: Book },
-        { name: 'Podcast Platforms', icon: Microphone }
+        { name: 'Podcast Platforms', icon: Mic }
       ]
     },
     {
