@@ -1,15 +1,45 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Trophy, ArrowRight } from 'lucide-react';
+import { Timer, Trophy, ArrowRight, Medal } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getApprovedCategories } from '@/lib/data';
 import { Category } from '@/lib/types';
 
+interface TimeLeft {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
+
+const CountdownTimer = ({ timeLeft }: { timeLeft: TimeLeft }) => {
+  return (
+    <div className="flex space-x-4 mt-4 md:mt-0">
+      <div className="text-center">
+        <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.days}</div>
+        <div className="text-xs mt-1">Days</div>
+      </div>
+      <div className="text-center">
+        <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.hours}</div>
+        <div className="text-xs mt-1">Hours</div>
+      </div>
+      <div className="text-center">
+        <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.minutes}</div>
+        <div className="text-xs mt-1">Mins</div>
+      </div>
+      <div className="text-center">
+        <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.seconds}</div>
+        <div className="text-xs mt-1">Secs</div>
+      </div>
+    </div>
+  );
+};
+
 const LimitedTimeContest = () => {
-  const [timeLeft, setTimeLeft] = useState({
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({
     days: 0,
     hours: 0,
     minutes: 0,
@@ -50,28 +80,17 @@ const LimitedTimeContest = () => {
   return (
     <section className="py-16 px-4 bg-gradient-to-br from-brand-purple/5 to-brand-teal/5">
       <div className="container mx-auto max-w-6xl">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Limited-Time Contest: {contestCategory.name}</h2>
-            <p className="text-gray-600">Vote for your favorite to win the trophy! Contest ends in:</p>
-          </div>
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Limited-Time Contest</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">Vote for your favorite {contestCategory.name} to win the trophy! The winner will be featured on our homepage.</p>
           
-          <div className="flex space-x-4 mt-4 md:mt-0">
-            <div className="text-center">
-              <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.days}</div>
-              <div className="text-xs mt-1">Days</div>
-            </div>
-            <div className="text-center">
-              <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.hours}</div>
-              <div className="text-xs mt-1">Hours</div>
-            </div>
-            <div className="text-center">
-              <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.minutes}</div>
-              <div className="text-xs mt-1">Mins</div>
-            </div>
-            <div className="text-center">
-              <div className="bg-brand-purple text-white text-lg font-bold rounded-md h-12 w-12 flex items-center justify-center">{timeLeft.seconds}</div>
-              <div className="text-xs mt-1">Secs</div>
+          <div className="mt-6 inline-flex items-center justify-center p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+            <div className="flex flex-col md:flex-row items-center gap-4">
+              <div className="flex items-center">
+                <Timer className="h-5 w-5 text-brand-purple mr-2" />
+                <span className="text-gray-700 font-medium">Contest ends in:</span>
+              </div>
+              <CountdownTimer timeLeft={timeLeft} />
             </div>
           </div>
         </div>
@@ -83,6 +102,13 @@ const LimitedTimeContest = () => {
               "from-yellow-300 to-yellow-500 border-yellow-400", // Gold
               "from-gray-300 to-gray-400 border-gray-400",      // Silver
               "from-amber-600 to-amber-700 border-amber-500"    // Bronze
+            ];
+            
+            // Medal icons for top 3
+            const medals = [
+              <Trophy key="gold" className="h-6 w-6 text-yellow-500" />, 
+              <Medal key="silver" className="h-6 w-6 text-gray-500" />,
+              <Medal key="bronze" className="h-6 w-6 text-amber-500" />
             ];
             
             return (
@@ -105,9 +131,7 @@ const LimitedTimeContest = () => {
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-lg">{item.voteCount} votes</span>
-                    {index === 0 && (
-                      <Trophy className="h-6 w-6 text-yellow-500" />
-                    )}
+                    {medals[index]}
                   </div>
                   <p className="text-sm mt-2 line-clamp-2">{item.description}</p>
                 </CardContent>

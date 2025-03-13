@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import ItemCard from '@/components/ItemCard';
 import { getCategoryById, voteForItem, currentUser } from '@/lib/data';
 import { Item } from '@/lib/types';
+import { AdCard } from '@/components/SponsoredSection';
 
 const CategoryDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +48,15 @@ const CategoryDetails = () => {
     } else {
       toast.error('Failed to record your vote');
     }
+  };
+  
+  // Sponsored product data - in a real app this would come from an API
+  const sponsoredProduct = {
+    title: "Premium Sneakers",
+    description: "Ultra-comfortable design with advanced cushioning technology",
+    imageUrl: "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=2560&auto=format&fit=crop",
+    targetUrl: "https://example.com/premium-sneakers",
+    category: category?.name || "Products"
   };
   
   if (!category) {
@@ -119,16 +129,43 @@ const CategoryDetails = () => {
           <h2 className="text-2xl font-bold mb-6">Rankings</h2>
           
           <div className="space-y-6">
-            {items.map((item, index) => (
-              <ItemCard 
-                key={item.id}
-                item={item}
-                categoryId={category.id}
-                rank={index + 1}
-                onVote={handleVote}
-                userVotedItemId={userVotedItemId}
-              />
-            ))}
+            {items.map((item, index) => {
+              // Insert the sponsored product after the second item (at position 3)
+              if (index === 2) {
+                return (
+                  <div key={`sponsored-${index}`} className="space-y-6">
+                    <ItemCard 
+                      key={item.id}
+                      item={item}
+                      categoryId={category.id}
+                      rank={index + 1}
+                      onVote={handleVote}
+                      userVotedItemId={userVotedItemId}
+                    />
+                    <div className="relative">
+                      <AdCard 
+                        key="sponsored-ad"
+                        title={sponsoredProduct.title}
+                        description={sponsoredProduct.description}
+                        imageUrl={sponsoredProduct.imageUrl}
+                        targetUrl={sponsoredProduct.targetUrl}
+                        category={sponsoredProduct.category}
+                      />
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <ItemCard 
+                  key={item.id}
+                  item={item}
+                  categoryId={category.id}
+                  rank={index + 1}
+                  onVote={handleVote}
+                  userVotedItemId={userVotedItemId}
+                />
+              );
+            })}
           </div>
         </div>
       </main>
