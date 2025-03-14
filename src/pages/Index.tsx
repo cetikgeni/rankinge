@@ -12,8 +12,8 @@ import SponsoredSection from '@/components/SponsoredSection';
 import LimitedTimeContest from '@/components/LimitedTimeContest';
 
 const Index = () => {
-  // Get the first 4 categories to display
-  const featuredCategories = getApprovedCategories().slice(0, 4);
+  // Get the first 8 categories to display (increased from 4 to 8)
+  const featuredCategories = getApprovedCategories().slice(0, 8);
   const allCategoryIcons = getAllCategoryIcons();
   
   return (
@@ -92,7 +92,7 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Featured Categories */}
+      {/* Featured Categories - Expanded from 4 to 8 */}
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
