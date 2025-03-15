@@ -92,28 +92,6 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Featured Categories - Expanded from 4 to 8 */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Featured Categories</h2>
-            <Link 
-              to="/categories" 
-              className="text-brand-purple hover:text-brand-purple/80 flex items-center text-sm font-medium"
-            >
-              View all categories
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredCategories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
-            ))}
-          </div>
-        </div>
-      </section>
-      
       {/* How It Works */}
       <section className="py-16 px-4 bg-gray-50">
         <div className="container mx-auto max-w-6xl">
