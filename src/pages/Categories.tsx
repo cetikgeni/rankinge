@@ -134,7 +134,7 @@ const Categories = () => {
                 <div className="bg-white rounded-lg shadow-sm">
                   <div className="grid grid-cols-1 divide-y">
                     {filteredCategories.map((category) => (
-                      <CategoryListItem key={category.id} category={category} />
+                      <CategoryListItem key={category.id} category={category} categoryGroups={categoryGroups} />
                     ))}
                   </div>
                 </div>
@@ -169,7 +169,7 @@ const Categories = () => {
   );
 };
 
-const CategoryListItem = ({ category }: { category: Category }) => {
+const CategoryListItem = ({ category, categoryGroups }: { category: Category, categoryGroups: ReturnType<typeof getAllCategoryIcons> }) => {
   // Get top 3 items
   const topItems = [...category.items]
     .sort((a, b) => b.voteCount - a.voteCount)
