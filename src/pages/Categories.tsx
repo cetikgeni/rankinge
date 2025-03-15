@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ChevronRight, Filter, ExternalLink } from 'lucide-react';
+import { Search, ChevronRight, Filter, ExternalLink, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -12,6 +11,7 @@ import { getApprovedCategories, voteForItem, currentUser } from '@/lib/data';
 import { getAllCategoryIcons } from '@/lib/category-icons';
 import { Category, Item } from '@/lib/types';
 import VoteButton from '@/components/VoteButton';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const Categories = () => {
   const allCategories = getApprovedCategories();
@@ -187,6 +187,9 @@ const CategoryListItem = ({ category, categoryGroups }: {
   // State to track which item is expanded for voting
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   
+  // State to track if the category details are expanded
+  const [isOpen, setIsOpen] = useState(false);
+  
   // Get user's current vote for this category
   const userVotedItemId = currentUser?.votes[category.id];
   
@@ -242,64 +245,58 @@ const CategoryListItem = ({ category, categoryGroups }: {
           </div>
           <p className="text-gray-600 text-sm mb-3 line-clamp-1">{category.description}</p>
           
-          {/* Top items with expanded voting */}
-          <div className="space-y-3">
-            {topItems.map((item, index) => (
-              <div 
-                key={item.id} 
-                className={`border rounded-md p-2 ${expandedItem === item.id ? 'bg-gray-50' : 'bg-white'}`}
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center">
-                    <Badge 
-                      variant="secondary" 
-                      className={`mr-2 text-xs font-semibold ${
-                        index === 0 
-                          ? 'bg-yellow-100 text-yellow-800' 
-                          : index === 1 
-                          ? 'bg-gray-200 text-gray-800' 
-                          : index === 2 
-                          ? 'bg-amber-100 text-amber-800' 
-                          : 'bg-white text-gray-800'
-                      }`}
-                    >
-                      #{index + 1}
-                    </Badge>
-                    <span className="font-medium">{item.name}</span>
-                    <Badge variant="outline" className="ml-2 bg-gray-50 text-xs">
-                      {item.voteCount} votes
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {expandedItem === item.id ? (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 text-xs"
-                        onClick={() => setExpandedItem(null)}
-                      >
-                        Collapse
-                      </Button>
-                    ) : (
-                      <VoteButton 
-                        isVoted={userVotedItemId === item.id}
-                        isLoggedIn={!!currentUser}
-                        onVote={() => {
-                          handleVote(item.id);
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
-                
-                {expandedItem === item.id && (
-                  <div className="mt-3 text-sm text-gray-600">
-                    <p>{item.description}</p>
-                  </div>
-                )}
+          {/* Collapsible top items */}
+          <Collapsible
+            open={isOpen}
+            onOpenChange={setIsOpen}
+            className="border rounded-md overflow-hidden"
+          >
+            <CollapsibleTrigger asChild>
+              <div className="flex justify-between items-center p-2 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                <span className="text-sm font-medium">Top Items ({topItems.length})</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
               </div>
-            ))}
-          </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-2 p-2">
+                {topItems.map((item, index) => (
+                  <div 
+                    key={item.id} 
+                    className="flex justify-between items-center p-2 bg-white border-b last:border-b-0"
+                  >
+                    <div className="flex items-center">
+                      <Badge 
+                        variant="secondary" 
+                        className={`mr-2 text-xs font-semibold ${
+                          index === 0 
+                            ? 'bg-yellow-100 text-yellow-800' 
+                            : index === 1 
+                            ? 'bg-gray-200 text-gray-800' 
+                            : index === 2 
+                            ? 'bg-amber-100 text-amber-800' 
+                            : 'bg-white text-gray-800'
+                        }`}
+                      >
+                        #{index + 1}
+                      </Badge>
+                      <span className="font-medium">{item.name}</span>
+                      <Badge variant="outline" className="ml-2 bg-gray-50 text-xs">
+                        {item.voteCount} votes
+                      </Badge>
+                    </div>
+                    
+                    <VoteButton 
+                      isVoted={userVotedItemId === item.id}
+                      isLoggedIn={!!currentUser}
+                      onVote={() => {
+                        handleVote(item.id);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
           
           <div className="mt-3 text-sm text-right">
             <span className="text-gray-500">Total: {category.items.length} items</span>
