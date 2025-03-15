@@ -1,15 +1,17 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ChevronRight, Filter } from 'lucide-react';
+import { Search, ChevronRight, Filter, ExternalLink } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
-import { getApprovedCategories } from '@/lib/data';
+import { getApprovedCategories, voteForItem, currentUser } from '@/lib/data';
 import { getAllCategoryIcons } from '@/lib/category-icons';
-import { Category } from '@/lib/types';
+import { Category, Item } from '@/lib/types';
+import VoteButton from '@/components/VoteButton';
 
 const Categories = () => {
   const allCategories = getApprovedCategories();
@@ -175,39 +177,123 @@ const CategoryListItem = ({ category, categoryGroups }: { category: Category, ca
     .sort((a, b) => b.voteCount - a.voteCount)
     .slice(0, 3);
   
+  // State to track which item is expanded for voting
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  
+  // Get user's current vote for this category
+  const userVotedItemId = currentUser?.votes[category.id];
+  
+  // Handle vote action
+  const handleVote = (itemId: string) => {
+    if (!currentUser) {
+      toast.error('You must be logged in to vote');
+      return;
+    }
+    
+    const success = voteForItem(category.id, itemId);
+    
+    if (success) {
+      // If already voted for this item, show a different message
+      if (userVotedItemId === itemId) {
+        toast('You already voted for this item');
+      } else {
+        toast.success('Your vote has been recorded!');
+      }
+    } else {
+      toast.error('Failed to record your vote');
+    }
+  };
+  
   return (
     <div className="p-4 hover:bg-gray-50 transition-colors">
-      <Link to={`/categories/${category.id}`} className="block">
-        <div className="flex items-start">
-          <img 
-            src={category.imageUrl} 
-            alt={category.name} 
-            className="w-16 h-16 object-cover rounded-md mr-4"
-          />
-          <div className="flex-grow">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">{category.name}</h3>
-            <p className="text-gray-600 text-sm mb-2 line-clamp-1">{category.description}</p>
-            
-            {/* Top items badges */}
-            <div className="flex flex-wrap gap-2">
-              {topItems.map((item, index) => (
-                <Badge key={item.id} variant="outline" className="bg-gray-50">
-                  #{index + 1} {item.name} ({item.voteCount})
-                </Badge>
-              ))}
-            </div>
+      <div className="flex items-start">
+        <img 
+          src={category.imageUrl} 
+          alt={category.name} 
+          className="w-16 h-16 object-cover rounded-md mr-4"
+        />
+        <div className="flex-grow">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">{category.name}</h3>
+            <Link 
+              to={`/categories/${category.id}`} 
+              className="text-brand-purple text-sm flex items-center hover:underline"
+            >
+              View Details <ExternalLink className="h-3.5 w-3.5 ml-1" />
+            </Link>
           </div>
-          <div className="flex-shrink-0 flex flex-col items-end">
-            <Badge className="mb-2 bg-brand-purple/10 text-brand-purple border-brand-purple/20">
-              {category.items.length} items
-            </Badge>
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Filter className="h-3 w-3" />
-              {selectedGroupForCategory(category, categoryGroups)}
-            </Badge>
+          <p className="text-gray-600 text-sm mb-3 line-clamp-1">{category.description}</p>
+          
+          {/* Top items with expanded voting */}
+          <div className="space-y-3">
+            {topItems.map((item, index) => (
+              <div 
+                key={item.id} 
+                className={`border rounded-md p-2 ${expandedItem === item.id ? 'bg-gray-50' : 'bg-white'}`}
+              >
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Badge 
+                      variant="secondary" 
+                      className={`mr-2 text-xs font-semibold ${
+                        index === 0 
+                          ? 'bg-yellow-100 text-yellow-800' 
+                          : index === 1 
+                          ? 'bg-gray-200 text-gray-800' 
+                          : index === 2 
+                          ? 'bg-amber-100 text-amber-800' 
+                          : 'bg-white text-gray-800'
+                      }`}
+                    >
+                      #{index + 1}
+                    </Badge>
+                    <span className="font-medium">{item.name}</span>
+                    <Badge variant="outline" className="ml-2 bg-gray-50 text-xs">
+                      {item.voteCount} votes
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {expandedItem === item.id ? (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-xs"
+                        onClick={() => setExpandedItem(null)}
+                      >
+                        Collapse
+                      </Button>
+                    ) : (
+                      <VoteButton 
+                        isVoted={userVotedItemId === item.id}
+                        isLoggedIn={!!currentUser}
+                        onVote={() => {
+                          handleVote(item.id);
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+                
+                {expandedItem === item.id && (
+                  <div className="mt-3 text-sm text-gray-600">
+                    <p>{item.description}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-3 text-sm text-right">
+            <span className="text-gray-500">Total: {category.items.length} items</span>
           </div>
         </div>
-      </Link>
+        <div className="flex-shrink-0 flex flex-col items-end">
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Filter className="h-3 w-3" />
+            {selectedGroupForCategory(category, categoryGroups)}
+          </Badge>
+        </div>
+      </div>
     </div>
   );
 };

@@ -7,9 +7,10 @@ interface VoteButtonProps {
   isVoted: boolean;
   isLoggedIn: boolean;
   onVote: () => void;
+  size?: 'default' | 'sm';
 }
 
-const VoteButton = ({ isVoted, isLoggedIn, onVote }: VoteButtonProps) => {
+const VoteButton = ({ isVoted, isLoggedIn, onVote, size = 'default' }: VoteButtonProps) => {
   const [isAnimating, setIsAnimating] = useState(false);
 
   const handleVote = () => {
@@ -28,7 +29,7 @@ const VoteButton = ({ isVoted, isLoggedIn, onVote }: VoteButtonProps) => {
     return (
       <Button 
         variant="outline" 
-        size="sm" 
+        size={size} 
         disabled 
         className="w-full md:w-auto text-sm"
       >
@@ -41,7 +42,7 @@ const VoteButton = ({ isVoted, isLoggedIn, onVote }: VoteButtonProps) => {
   return (
     <Button
       variant={isVoted ? "default" : "outline"}
-      size="sm"
+      size={size}
       onClick={handleVote}
       className={`w-full md:w-auto transition-all ${
         isVoted 
