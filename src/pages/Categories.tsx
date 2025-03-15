@@ -136,7 +136,11 @@ const Categories = () => {
                 <div className="bg-white rounded-lg shadow-sm">
                   <div className="grid grid-cols-1 divide-y">
                     {filteredCategories.map((category) => (
-                      <CategoryListItem key={category.id} category={category} categoryGroups={categoryGroups} />
+                      <CategoryListItem 
+                        key={category.id} 
+                        category={category} 
+                        categoryGroups={categoryGroups} 
+                      />
                     ))}
                   </div>
                 </div>
@@ -164,14 +168,17 @@ const Categories = () => {
       {/* Footer */}
       <footer className="py-6 px-4 bg-gray-100 border-t">
         <div className="container mx-auto max-w-7xl text-center text-sm text-gray-600">
-          &copy; {new Date().getFullYear()} Categlorium. All rights reserved.
+          &copy; {new Date().getFullYear()} Rankinge. All rights reserved.
         </div>
       </footer>
     </div>
   );
 };
 
-const CategoryListItem = ({ category, categoryGroups }: { category: Category, categoryGroups: ReturnType<typeof getAllCategoryIcons> }) => {
+const CategoryListItem = ({ category, categoryGroups }: { 
+  category: Category, 
+  categoryGroups: ReturnType<typeof getAllCategoryIcons> 
+}) => {
   // Get top 3 items
   const topItems = [...category.items]
     .sort((a, b) => b.voteCount - a.voteCount)
@@ -203,6 +210,9 @@ const CategoryListItem = ({ category, categoryGroups }: { category: Category, ca
       toast.error('Failed to record your vote');
     }
   };
+
+  // Get the category group this category belongs to
+  const categoryGroup = selectedGroupForCategory(category, categoryGroups);
   
   return (
     <div className="p-4 hover:bg-gray-50 transition-colors">
@@ -214,7 +224,15 @@ const CategoryListItem = ({ category, categoryGroups }: { category: Category, ca
         />
         <div className="flex-grow">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">{category.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900">{category.name}</h3>
+              <Badge 
+                variant="outline" 
+                className="bg-gray-50 text-xs capitalize"
+              >
+                {categoryGroup}
+              </Badge>
+            </div>
             <Link 
               to={`/categories/${category.id}`} 
               className="text-brand-purple text-sm flex items-center hover:underline"
@@ -286,12 +304,6 @@ const CategoryListItem = ({ category, categoryGroups }: { category: Category, ca
           <div className="mt-3 text-sm text-right">
             <span className="text-gray-500">Total: {category.items.length} items</span>
           </div>
-        </div>
-        <div className="flex-shrink-0 flex flex-col items-end">
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Filter className="h-3 w-3" />
-            {selectedGroupForCategory(category, categoryGroups)}
-          </Badge>
         </div>
       </div>
     </div>

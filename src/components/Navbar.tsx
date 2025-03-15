@@ -32,7 +32,7 @@ const Navbar = () => {
         <Link to="/" className="flex items-center space-x-2">
           <BarChart className="h-6 w-6 text-brand-purple" />
           <span className="text-xl font-bold bg-gradient-to-r from-brand-purple to-brand-teal bg-clip-text text-transparent">
-            Categlorium
+            Rankinge
           </span>
         </Link>
 
