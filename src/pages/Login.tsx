@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BarChart, LogIn, Google } from 'lucide-react';
+import { BarChart, LogIn, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { login } from '@/lib/data';
 import Navbar from '@/components/Navbar';
 import { Separator } from '@/components/ui/separator';
+import AdFooter from '@/components/AdFooter';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -90,7 +91,7 @@ const Login = () => {
               onClick={handleGoogleLogin}
               disabled={isLoading}
             >
-              <Google className="h-4 w-4" />
+              <Github className="h-4 w-4" />
               Continue with Google
             </Button>
             

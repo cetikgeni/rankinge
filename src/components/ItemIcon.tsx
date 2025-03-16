@@ -1,8 +1,8 @@
 
 import { 
   ShoppingCart, Coffee, Utensils, Beer, Pizza, Tv, Music, 
-  Smartphone, Laptop, Monitor, Car, Plane, Gamepad, Ball, 
-  BarChart, FileImage, Globe, ExternalLink, Link
+  Smartphone, Laptop, Monitor, Car, Plane, Gamepad, 
+  BarChart, FileImage, Globe, ExternalLink, BadgeCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -41,7 +41,7 @@ const ItemIcon = ({ itemName, targetUrl }: ItemIconProps) => {
   } else if (name.includes('game') || name.includes('gaming')) {
     Icon = Gamepad;
   } else if (name.includes('sport') || name.includes('ball')) {
-    Icon = Ball;
+    Icon = BadgeCheck;  // Replacing Ball with BadgeCheck as Ball isn't available
   } else if (name.includes('chart') || name.includes('graph') || name.includes('stat')) {
     Icon = BarChart;
   } else if (name.includes('image') || name.includes('picture') || name.includes('photo')) {

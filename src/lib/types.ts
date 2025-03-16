@@ -28,7 +28,11 @@ export interface Category {
 export interface CategorySubmission {
   name: string;
   description: string;
-  items: { name: string; description: string }[];
+  items: { 
+    name: string; 
+    description: string;
+    productUrl?: string; 
+  }[];
 }
 
 export interface AuthState {
