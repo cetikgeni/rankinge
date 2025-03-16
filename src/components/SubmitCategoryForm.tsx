@@ -4,22 +4,23 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategorySubmission } from '@/lib/types';
 import { submitCategory, currentUser } from '@/lib/data';
+import AIAssistant from './AIAssistant';
 
 const SubmitCategoryForm = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [formData, setFormData] = useState<CategorySubmission>({
+  const [formData, setFormData] = useState<CategorySubmission & { items: Array<{ name: string; description: string; productUrl?: string }> }>({
     name: '',
     description: '',
     items: [
-      { name: '', description: '' },
-      { name: '', description: '' },
-      { name: '', description: '' }
+      { name: '', description: '', productUrl: '' },
+      { name: '', description: '', productUrl: '' },
+      { name: '', description: '', productUrl: '' }
     ]
   });
 
@@ -48,7 +49,7 @@ const SubmitCategoryForm = () => {
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { name: '', description: '' }]
+      items: [...prev.items, { name: '', description: '', productUrl: '' }]
     }));
   };
 
@@ -101,8 +102,15 @@ const SubmitCategoryForm = () => {
     
     setIsSubmitting(true);
     
+    // Create submission without productUrl
+    const submission: CategorySubmission = {
+      name: formData.name,
+      description: formData.description,
+      items: formData.items.map(({ name, description }) => ({ name, description }))
+    };
+    
     // Submit category
-    const success = submitCategory(formData);
+    const success = submitCategory(submission);
     
     if (success) {
       toast.success('Category submitted for review!');
@@ -113,10 +121,54 @@ const SubmitCategoryForm = () => {
     }
   };
 
+  const handleAICategoryAssist = (suggestion: string) => {
+    setFormData(prev => ({
+      ...prev,
+      name: suggestion
+    }));
+  };
+
+  const handleAIDescriptionAssist = (suggestion: string) => {
+    setFormData(prev => ({
+      ...prev,
+      description: suggestion
+    }));
+  };
+
+  const handleAIItemAssist = (index: number, suggestion: string) => {
+    // Extract likely name and description from the suggestion
+    // Format is usually "Name - Description"
+    const parts = suggestion.split(' - ');
+    
+    const updatedItems = [...formData.items];
+    if (parts.length > 1) {
+      updatedItems[index] = {
+        ...updatedItems[index],
+        name: parts[0],
+        description: parts.slice(1).join(' - ')
+      };
+    } else {
+      // If no clear separator, just use it as description
+      updatedItems[index] = {
+        ...updatedItems[index],
+        description: suggestion
+      };
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      items: updatedItems
+    }));
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Category Details</h3>
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">Category Details</h3>
+          <AIAssistant onSuggestion={handleAICategoryAssist} fieldType="category" />
+        </div>
+        
         <div className="space-y-2">
           <label htmlFor="name" className="text-sm font-medium text-gray-700">
             Category Name
@@ -132,9 +184,12 @@ const SubmitCategoryForm = () => {
         </div>
         
         <div className="space-y-2">
-          <label htmlFor="description" className="text-sm font-medium text-gray-700">
-            Category Description
-          </label>
+          <div className="flex justify-between items-center">
+            <label htmlFor="description" className="text-sm font-medium text-gray-700">
+              Category Description
+            </label>
+            <AIAssistant onSuggestion={handleAIDescriptionAssist} fieldType="description" currentValue={formData.description} />
+          </div>
           <Textarea
             id="description"
             name="description"
@@ -166,15 +221,22 @@ const SubmitCategoryForm = () => {
           <div key={index} className="p-4 bg-gray-50 rounded-md space-y-3">
             <div className="flex justify-between items-center">
               <h4 className="text-sm font-medium text-gray-700">Item #{index + 1}</h4>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeItem(index)}
-                className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <AIAssistant 
+                  onSuggestion={(suggestion) => handleAIItemAssist(index, suggestion)} 
+                  fieldType="item" 
+                  currentValue={item.description}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeItem(index)}
+                  className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -204,6 +266,39 @@ const SubmitCategoryForm = () => {
                 rows={2}
                 required
               />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <LinkIcon className="h-3.5 w-3.5 text-gray-500" />
+                <label htmlFor={`item-product-url-${index}`} className="text-sm font-medium text-gray-700">
+                  Product URL (optional)
+                </label>
+              </div>
+              <div className="flex">
+                <Input
+                  id={`item-product-url-${index}`}
+                  name="productUrl"
+                  value={item.productUrl}
+                  onChange={(e) => handleItemChange(index, e)}
+                  placeholder="https://example.com/product"
+                  className="rounded-r-none"
+                />
+                <Button
+                  type="button" 
+                  variant="outline" 
+                  size="icon"
+                  className="h-10 rounded-l-none border-l-0"
+                  disabled={!item.productUrl}
+                  onClick={() => {
+                    if (item.productUrl) {
+                      window.open(item.productUrl, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         ))}

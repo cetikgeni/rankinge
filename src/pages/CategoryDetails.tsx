@@ -8,6 +8,8 @@ import ItemCard from '@/components/ItemCard';
 import { getCategoryById, voteForItem, currentUser } from '@/lib/data';
 import { Item } from '@/lib/types';
 import { AdCard } from '@/components/SponsoredSection';
+import AdFooter from '@/components/AdFooter';
+import SidebarAd from '@/components/SidebarAd';
 
 const CategoryDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,8 +82,8 @@ const CategoryDetails = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <main className="flex-grow py-10 px-4">
-        <div className="container mx-auto max-w-4xl">
+      <main className="flex-grow py-10 px-4 bg-gray-50">
+        <div className="container mx-auto max-w-7xl">
           {/* Back Link */}
           <Link 
             to="/categories" 
@@ -91,94 +93,141 @@ const CategoryDetails = () => {
             Back to all categories
           </Link>
           
-          {/* Category Header */}
-          <div className="relative h-64 rounded-lg overflow-hidden mb-8">
-            <img 
-              src={category.imageUrl} 
-              alt={category.name} 
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-              <div className="p-6 text-white">
-                <h1 className="text-3xl font-bold mb-2">{category.name}</h1>
-                <p className="text-white/90">{category.description}</p>
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="md:w-3/4">
+              {/* Category Header */}
+              <div className="relative h-64 rounded-lg overflow-hidden mb-8">
+                <img 
+                  src={category.imageUrl} 
+                  alt={category.name} 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+                  <div className="p-6 text-white">
+                    <h1 className="text-3xl font-bold mb-2">{category.name}</h1>
+                    <p className="text-white/90">{category.description}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          
-          {!category.isApproved && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 mb-8">
-              <p className="font-medium">This category is pending approval</p>
-              <p className="text-sm">
-                This category has been submitted and is awaiting admin review before it becomes available for public voting.
-              </p>
-            </div>
-          )}
-          
-          {/* Voting Instructions */}
-          <div className="bg-gray-50 rounded-md p-4 mb-8">
-            <h2 className="text-lg font-medium mb-2">Voting Rules</h2>
-            <ul className="text-sm text-gray-700 space-y-1">
-              <li>• You can vote for one item in this category.</li>
-              <li>• You can change your vote at any time.</li>
-              <li>• Results are updated in real-time.</li>
-            </ul>
-          </div>
-          
-          {/* Items List */}
-          <h2 className="text-2xl font-bold mb-6">Rankings</h2>
-          
-          <div className="space-y-6">
-            {items.map((item, index) => {
-              // Insert sponsored product after the second item (at position 3)
-              if (index === 2) {
-                return (
-                  <div key={`sponsored-${item.id}`} className="space-y-6">
-                    <div className="relative">
+              
+              {!category.isApproved && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-md p-4 mb-8">
+                  <p className="font-medium">This category is pending approval</p>
+                  <p className="text-sm">
+                    This category has been submitted and is awaiting admin review before it becomes available for public voting.
+                  </p>
+                </div>
+              )}
+              
+              {/* Voting Instructions */}
+              <div className="bg-white rounded-md p-4 mb-8 shadow-sm">
+                <h2 className="text-lg font-medium mb-2">Voting Rules</h2>
+                <ul className="text-sm text-gray-700 space-y-1">
+                  <li>• You can vote for one item in this category.</li>
+                  <li>• You can change your vote at any time.</li>
+                  <li>• Results are updated in real-time.</li>
+                </ul>
+              </div>
+              
+              {/* Items List */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
+                <h2 className="text-2xl font-bold mb-6">Rankings</h2>
+                
+                <div className="space-y-6">
+                  {items.map((item, index) => {
+                    // Insert sponsored product after the second item (at position 3)
+                    if (index === 2) {
+                      return (
+                        <div key={`sponsored-${item.id}`} className="space-y-6">
+                          <div className="relative">
+                            <ItemCard 
+                              item={item}
+                              categoryId={category.id}
+                              rank={index + 1}
+                              onVote={handleVote}
+                              userVotedItemId={userVotedItemId}
+                            />
+                          </div>
+                          
+                          <div className="relative rounded-lg overflow-hidden border border-brand-purple/20 bg-gradient-to-r from-brand-purple/5 to-brand-teal/5">
+                            <div className="absolute top-0 left-0 bg-brand-purple text-white text-xs font-bold py-1 px-3 rounded-br-lg">
+                              Sponsored
+                            </div>
+                            <AdCard 
+                              title={sponsoredProduct.title}
+                              description={sponsoredProduct.description}
+                              imageUrl={sponsoredProduct.imageUrl}
+                              targetUrl={sponsoredProduct.targetUrl}
+                              category={sponsoredProduct.category}
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return (
                       <ItemCard 
+                        key={item.id}
                         item={item}
                         categoryId={category.id}
                         rank={index + 1}
                         onVote={handleVote}
                         userVotedItemId={userVotedItemId}
                       />
-                    </div>
-                    
-                    <div className="relative rounded-lg overflow-hidden border border-brand-purple/20 bg-gradient-to-r from-brand-purple/5 to-brand-teal/5">
-                      <div className="absolute top-0 left-0 bg-brand-purple text-white text-xs font-bold py-1 px-3 rounded-br-lg">
-                        Sponsored
-                      </div>
-                      <AdCard 
-                        title={sponsoredProduct.title}
-                        description={sponsoredProduct.description}
-                        imageUrl={sponsoredProduct.imageUrl}
-                        targetUrl={sponsoredProduct.targetUrl}
-                        category={sponsoredProduct.category}
-                      />
-                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            
+            {/* Sidebar */}
+            <div className="md:w-1/4 space-y-6">
+              <div className="bg-white p-4 rounded-lg shadow-sm">
+                <h2 className="font-bold text-lg mb-4">About This Ranking</h2>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">Items:</span>
+                    <span className="ml-2 font-medium">{items.length}</span>
                   </div>
-                );
-              }
+                  <div>
+                    <span className="text-gray-500">Total Votes:</span>
+                    <span className="ml-2 font-medium">
+                      {items.reduce((sum, item) => sum + item.voteCount, 0)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Your Vote:</span>
+                    <span className="ml-2 font-medium">
+                      {userVotedItemId 
+                        ? items.find(item => item.id === userVotedItemId)?.name || "Unknown" 
+                        : "Not voted yet"}
+                    </span>
+                  </div>
+                </div>
+              </div>
               
-              return (
-                <ItemCard 
-                  key={item.id}
-                  item={item}
-                  categoryId={category.id}
-                  rank={index + 1}
-                  onVote={handleVote}
-                  userVotedItemId={userVotedItemId}
-                />
-              );
-            })}
+              <SidebarAd 
+                title="Try Our Mobile App"
+                description="Vote on rankings on the go"
+                imageUrl="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&auto=format&fit=crop"
+                targetUrl="https://example.com/app"
+              />
+              
+              <SidebarAd 
+                title="Share Your Opinion"
+                description="Create your own rankings today"
+                imageUrl="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop"
+                targetUrl="https://example.com/create"
+              />
+            </div>
           </div>
         </div>
       </main>
       
       {/* Footer */}
-      <footer className="py-6 px-4 bg-gray-50 border-t mt-12">
-        <div className="container mx-auto max-w-4xl text-center text-sm text-gray-600">
-          &copy; {new Date().getFullYear()} Categlorium. All rights reserved.
+      <footer className="py-6 px-4 bg-white border-t">
+        <div className="container mx-auto max-w-7xl">
+          <AdFooter />
         </div>
       </footer>
     </div>

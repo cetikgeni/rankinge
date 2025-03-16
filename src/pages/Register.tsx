@@ -1,13 +1,14 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BarChart, UserPlus } from 'lucide-react';
+import { BarChart, UserPlus, Google } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { register } from '@/lib/data';
 import Navbar from '@/components/Navbar';
+import { Separator } from '@/components/ui/separator';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -60,6 +61,23 @@ const Register = () => {
     }
   };
   
+  const handleGoogleSignup = () => {
+    setIsLoading(true);
+    
+    // Simulate Google signup with delay
+    setTimeout(() => {
+      const user = register('google_user', 'google_user@example.com', 'google_pass');
+      
+      if (user) {
+        toast.success('Google account linked successfully!');
+        navigate('/');
+      } else {
+        toast.error('Failed to sign up with Google. Try regular signup for demo.');
+        setIsLoading(false);
+      }
+    }, 1000);
+  };
+  
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -72,81 +90,101 @@ const Register = () => {
             </div>
             <CardTitle className="text-2xl">Create an account</CardTitle>
             <CardDescription>
-              Join Categlorium to start voting and submitting categories
+              Join Rankinge to start voting and submitting categories
             </CardDescription>
           </CardHeader>
           
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="username" className="text-sm font-medium">
-                  Username
-                </label>
-                <Input
-                  id="username"
-                  name="username"
-                  placeholder="Choose a username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  required
-                />
+          <CardContent className="space-y-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full flex items-center justify-center gap-2"
+              onClick={handleGoogleSignup}
+              disabled={isLoading}
+            >
+              <Google className="h-4 w-4" />
+              Sign up with Google
+            </Button>
+            
+            <div className="relative my-4">
+              <Separator />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
+                OR
+              </span>
+            </div>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="username" className="text-sm font-medium">
+                    Username
+                  </label>
+                  <Input
+                    id="username"
+                    name="username"
+                    placeholder="Choose a username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">
+                    Email
+                  </label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Create a password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="confirmPassword" className="text-sm font-medium">
+                    Confirm Password
+                  </label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-brand-purple hover:bg-brand-purple/90"
+                  disabled={isLoading}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {isLoading ? 'Creating account...' : 'Create account'}
+                </Button>
               </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Create a password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium">
-                  Confirm Password
-                </label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-brand-purple hover:bg-brand-purple/90"
-                disabled={isLoading}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                {isLoading ? 'Creating account...' : 'Create account'}
-              </Button>
-            </CardContent>
-          </form>
+            </form>
+          </CardContent>
           
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-center text-gray-600">
@@ -158,6 +196,12 @@ const Register = () => {
           </CardFooter>
         </Card>
       </main>
+      
+      <footer className="py-6 px-4 border-t">
+        <div className="container mx-auto max-w-7xl">
+          <AdFooter />
+        </div>
+      </footer>
     </div>
   );
 };
