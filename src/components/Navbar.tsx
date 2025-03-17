@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
   AlignJustify, 
@@ -10,13 +9,15 @@ import {
   Plus, 
   UserPlus, 
   User,
-  X
+  X,
+  LayoutDashboard
 } from 'lucide-react';
 import { currentUser, logout } from '@/lib/data';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -25,6 +26,9 @@ const Navbar = () => {
     window.location.reload();
   };
 
+  const isHomePage = location.pathname === '/';
+  const isAltHomePage = location.pathname === '/alt';
+
   return (
     <nav className="bg-white py-4 shadow-sm sticky top-0 z-10">
       <div className="container px-4 mx-auto flex justify-between items-center">
@@ -32,7 +36,7 @@ const Navbar = () => {
         <Link to="/" className="flex items-center space-x-2">
           <BarChart className="h-6 w-6 text-brand-purple" />
           <span className="text-xl font-bold bg-gradient-to-r from-brand-purple to-brand-teal bg-clip-text text-transparent">
-            Rankinge
+            {isAltHomePage ? 'Rankinge' : 'Categlorium'}
           </span>
         </Link>
 
@@ -50,6 +54,25 @@ const Navbar = () => {
               Admin
             </Link>
           )}
+
+          {/* Home version switcher */}
+          {isHomePage ? (
+            <Link 
+              to="/alt" 
+              className="text-gray-700 hover:text-brand-purple transition-colors flex items-center gap-1"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              <span>Alt Home</span>
+            </Link>
+          ) : isAltHomePage ? (
+            <Link 
+              to="/" 
+              className="text-gray-700 hover:text-brand-purple transition-colors flex items-center gap-1"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              <span>Classic Home</span>
+            </Link>
+          ) : null}
 
           <div className="w-px h-6 bg-gray-300 mx-2" />
 
@@ -128,26 +151,45 @@ const Navbar = () => {
               </Link>
             )}
 
+            {/* Home version switcher for mobile */}
+            {isHomePage ? (
+              <Link 
+                to="/alt" 
+                className="text-gray-700 py-2 hover:text-brand-purple flex items-center gap-1"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <LayoutDashboard className="h-4 w-4 mr-1" />
+                <span>Alt Home</span>
+              </Link>
+            ) : isAltHomePage ? (
+              <Link 
+                to="/" 
+                className="text-gray-700 py-2 hover:text-brand-purple flex items-center gap-1"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <LayoutDashboard className="h-4 w-4 mr-1" />
+                <span>Classic Home</span>
+              </Link>
+            ) : null}
+
             <hr className="border-gray-200" />
 
             {currentUser ? (
-              <>
-                <div className="flex items-center py-2">
-                  <User className="h-4 w-4 mr-2 text-gray-700" />
-                  <span className="text-sm font-medium text-gray-700">{currentUser.username}</span>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  className="justify-start px-0 text-gray-700 hover:text-red-600" 
-                  onClick={() => {
-                    handleLogout();
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  <span>Logout</span>
-                </Button>
-              </>
+              <div className="flex items-center py-2">
+                <User className="h-4 w-4 mr-2 text-gray-700" />
+                <span className="text-sm font-medium text-gray-700">{currentUser.username}</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                className="justify-start px-0 text-gray-700 hover:text-red-600" 
+                onClick={() => {
+                  handleLogout();
+                  setIsMenuOpen(false);
+                }}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                <span>Logout</span>
+              </Button>
             ) : (
               <>
                 <Button 
