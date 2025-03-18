@@ -1,4 +1,4 @@
-import { Category, Item, User } from './types';
+import { Category, Item, User, CategorySubmission } from './types';
 
 // Mock user data
 export let currentUser: User | null = {
@@ -10,12 +10,46 @@ export let currentUser: User | null = {
 };
 
 // Function to simulate user login
-export const loginUser = (user: User) => {
-  currentUser = user;
+export const login = (username: string, password: string): User | null => {
+  // For demo purposes, allow any username/password combination
+  if (username === 'admin') {
+    currentUser = {
+      id: 'admin1',
+      username: 'Admin User',
+      email: 'admin@example.com',
+      isAdmin: true,
+      votes: {}
+    };
+    return currentUser;
+  } else if (username) {
+    currentUser = {
+      id: `user_${Date.now()}`,
+      username,
+      email: `${username}@example.com`,
+      isAdmin: false,
+      votes: {}
+    };
+    return currentUser;
+  }
+  return null;
+};
+
+// Function to simulate user registration
+export const register = (username: string, email: string, password: string): User | null => {
+  // In a real app, we would check if the user already exists
+  // For demo purposes, create a new user
+  currentUser = {
+    id: `user_${Date.now()}`,
+    username,
+    email,
+    isAdmin: false,
+    votes: {}
+  };
+  return currentUser;
 };
 
 // Function to simulate user logout
-export const logoutUser = () => {
+export const logout = () => {
   currentUser = null;
 };
 
@@ -157,18 +191,61 @@ export const getApprovedCategories = (): Category[] => {
   return categories.filter(category => category.isApproved);
 };
 
+// Function to get pending categories (not approved yet)
+export const getPendingCategories = (): Category[] => {
+  return categories.filter(category => !category.isApproved);
+};
+
+// Function to reject a category (admin only)
+export const rejectCategory = (id: string): boolean => {
+  if (!currentUser?.isAdmin) {
+    console.warn('Non-admin user attempted to reject a category.');
+    return false;
+  }
+
+  const categoryIndex = categories.findIndex(category => category.id === id);
+  if (categoryIndex === -1) {
+    console.warn(`Category with id ${id} not found.`);
+    return false;
+  }
+
+  // Remove the category from the array
+  categories.splice(categoryIndex, 1);
+  return true;
+};
+
 // Function to get a category by ID
 export const getCategoryById = (id: string): Category | undefined => {
   return categories.find(category => category.id === id);
 };
 
 // Function to submit a new category
-export const submitCategory = (category: Omit<Category, 'id' | 'isApproved'>): Category => {
+export const submitCategory = (submission: CategorySubmission): Category | null => {
+  if (!currentUser) {
+    console.warn('User must be logged in to submit a category');
+    return null;
+  }
+
+  // Create a new category with proper fields
   const newCategory: Category = {
     id: `category${categories.length + 1}`,
-    ...category,
+    name: submission.name,
+    description: submission.description,
+    // Default image for new categories
+    imageUrl: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2F0ZWdvcnl8ZW58MHx8MHx8fDA%3D',
+    // Convert item submissions to full items
+    items: submission.items.map((item, index) => ({
+      id: `item${Date.now() + index}`,
+      name: item.name,
+      description: item.description,
+      imageUrl: 'https://images.unsplash.com/photo-1576633587382-13ddf37b1fc1?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGl0ZW18ZW58MHx8MHx8fDA%3D',
+      voteCount: 0,
+      productUrl: item.productUrl
+    })),
     isApproved: false,
+    createdBy: currentUser.id,
   };
+
   categories.push(newCategory);
   return newCategory;
 };
