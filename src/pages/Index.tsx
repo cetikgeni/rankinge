@@ -8,8 +8,9 @@ import CategoryCard from '@/components/CategoryCard';
 import { getApprovedCategories } from '@/lib/data';
 import { getAllCategoryIcons } from '@/lib/category-icons';
 import CategorySearch from '@/components/CategorySearch';
-import SponsoredSection from '@/components/SponsoredSection';
+import CategoryGroup from '@/components/SponsoredSection';
 import LimitedTimeContest from '@/components/LimitedTimeContest';
+import React from 'react';
 
 const Index = () => {
   // Get the first 8 categories to display (increased from 4 to 8)
@@ -40,11 +41,16 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Sponsored Products Section */}
-      <SponsoredSection />
+      {/* Featured Categories with images */}
+      <CategoryGroup title="Featured Tech Categories" categoryGroup="Technology" showImages={true} limit={4} />
       
       {/* Limited Time Contest Section */}
       <LimitedTimeContest />
+      
+      {/* Three additional category rows with icons (no images) */}
+      <CategoryGroup title="Food & Beverages" categoryGroup="Food & Beverages" showImages={false} limit={4} />
+      <CategoryGroup title="Fashion Favorites" categoryGroup="Fashion & Apparel" showImages={false} limit={4} />
+      <CategoryGroup title="Entertainment Picks" categoryGroup="Entertainment" showImages={false} limit={4} />
       
       {/* Categories Search & Browse Section */}
       <section className="py-16 px-4 bg-gray-50">
@@ -60,7 +66,7 @@ const Index = () => {
             {allCategoryIcons.map((categoryGroup) => (
               <div key={categoryGroup.name} className="mb-8">
                 <h3 className="text-lg font-bold mb-4 text-gray-800 flex items-center">
-                  <categoryGroup.icon className="mr-2 h-5 w-5 text-brand-purple" />
+                  {React.createElement(categoryGroup.icon, { className: "mr-2 h-5 w-5 text-brand-purple" })}
                   {categoryGroup.name}
                 </h3>
                 <ul className="space-y-2">
@@ -70,7 +76,7 @@ const Index = () => {
                         to={`/categories?filter=${subCategory.name.toLowerCase()}`}
                         className="text-gray-600 hover:text-brand-purple transition-colors flex items-center text-sm"
                       >
-                        <subCategory.icon className="mr-2 h-4 w-4 text-gray-400" />
+                        {React.createElement(subCategory.icon, { className: "mr-2 h-4 w-4 text-gray-400" })}
                         {subCategory.name}
                       </Link>
                     </li>
@@ -96,7 +102,7 @@ const Index = () => {
       <section className="py-16 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Featured Categories</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Popular Categories</h2>
             <Link 
               to="/categories" 
               className="text-brand-purple hover:text-brand-purple/80 flex items-center text-sm font-medium"
