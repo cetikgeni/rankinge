@@ -102,11 +102,14 @@ const SubmitCategoryForm = () => {
     
     setIsSubmitting(true);
     
-    // Create submission without productUrl
     const submission: CategorySubmission = {
       name: formData.name,
       description: formData.description,
-      items: formData.items.map(({ name, description }) => ({ name, description }))
+      items: formData.items.map(({ name, description, productUrl }) => ({ 
+        name, 
+        description,
+        productUrl: productUrl && productUrl.trim() !== '' ? productUrl : undefined
+      }))
     };
     
     // Submit category
@@ -161,8 +164,44 @@ const SubmitCategoryForm = () => {
     }));
   };
 
+  const handleCompleteCategory = (data: {
+    name: string;
+    description: string;
+    items: Array<{name: string; description: string}>
+  }) => {
+    // Map the AI suggested items to our format (with empty productUrl)
+    const formattedItems = data.items.map(item => ({
+      name: item.name,
+      description: item.description,
+      productUrl: ''
+    }));
+
+    // Update the entire form with the AI suggested category
+    setFormData({
+      name: data.name,
+      description: data.description,
+      items: formattedItems
+    });
+
+    toast.success('Complete category generated!');
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="mb-6">
+        <div className="bg-brand-purple/5 p-4 rounded-lg border border-brand-purple/20 mb-6">
+          <h3 className="text-lg font-medium mb-3 text-brand-purple">Quick Generate Complete Category</h3>
+          <p className="text-sm text-gray-600 mb-3">
+            Enter a single keyword (like "smartphones" or "breakfast") and our AI will generate a complete category with items.
+          </p>
+          <AIAssistant 
+            onSuggestion={() => {}} 
+            fieldType="completeCategory"
+            onCategoryWithItems={handleCompleteCategory}
+          />
+        </div>
+      </div>
+
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium">Category Details</h3>
