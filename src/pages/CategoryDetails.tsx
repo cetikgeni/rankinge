@@ -1,20 +1,29 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, BarChart2, Percent, History } from 'lucide-react';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import ItemCard from '@/components/ItemCard';
-import { getCategoryById, voteForItem, currentUser } from '@/lib/data';
+import VoteHistory from '@/components/VoteHistory';
+import { getCategoryById, voteForItem, currentUser, updateCategorySettings } from '@/lib/data';
 import { Item } from '@/lib/types';
 import { AdCard } from '@/components/SponsoredSection';
 import AdFooter from '@/components/AdFooter';
 import SidebarAd from '@/components/SidebarAd';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const CategoryDetails = () => {
   const { id } = useParams<{ id: string }>();
   const category = getCategoryById(id || '');
   const [items, setItems] = useState<Item[]>([]);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [displayAs, setDisplayAs] = useState<'count' | 'percentage'>(
+    category?.displayVoteAs || 'count'
+  );
   
   useEffect(() => {
     if (category) {
@@ -51,6 +60,20 @@ const CategoryDetails = () => {
       toast.error('Failed to record your vote');
     }
   };
+
+  const toggleDisplayMode = () => {
+    const newMode = displayAs === 'count' ? 'percentage' : 'count';
+    setDisplayAs(newMode);
+    
+    // Update the category setting if user is admin
+    if (currentUser?.isAdmin && category) {
+      updateCategorySettings(category.id, { displayVoteAs: newMode });
+      toast.success(`Display switched to ${newMode === 'count' ? 'vote count' : 'percentage'}`);
+    }
+  };
+  
+  // Calculate total votes for percentage view
+  const totalVotes = items.reduce((sum, item) => sum + item.voteCount, 0);
   
   // Sponsored product data - in a real app this would come from an API
   const sponsoredProduct = {
@@ -121,11 +144,36 @@ const CategoryDetails = () => {
               
               {/* Voting Instructions */}
               <div className="bg-white rounded-md p-4 mb-8 shadow-sm">
-                <h2 className="text-lg font-medium mb-2">Voting Rules</h2>
-                <ul className="text-sm text-gray-700 space-y-1">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-medium">Voting Rules</h2>
+                  
+                  {currentUser?.isAdmin && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={toggleDisplayMode}
+                      className="flex items-center gap-1.5 text-xs"
+                    >
+                      {displayAs === 'count' ? (
+                        <>
+                          <BarChart2 className="h-3.5 w-3.5" />
+                          <span>Showing Vote Count</span>
+                        </>
+                      ) : (
+                        <>
+                          <Percent className="h-3.5 w-3.5" />
+                          <span>Showing Percentages</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                
+                <ul className="text-sm text-gray-700 space-y-1 mt-2">
                   <li>• You can vote for one item in this category.</li>
                   <li>• You can change your vote at any time.</li>
                   <li>• Results are updated in real-time.</li>
+                  <li>• View ranking history to see how items have performed over time.</li>
                 </ul>
               </div>
               
@@ -135,17 +183,33 @@ const CategoryDetails = () => {
                 
                 <div className="space-y-6">
                   {items.map((item, index) => {
+                    // Format the vote count as percentage if needed
+                    const voteDisplay = displayAs === 'percentage' && totalVotes > 0
+                      ? `${Math.round((item.voteCount / totalVotes) * 100)}%`
+                      : `${item.voteCount} votes`;
+                      
+                    // Create a new item object with the vote display 
+                    const itemWithVoteDisplay = {
+                      ...item,
+                      voteDisplay
+                    };
+                    
                     // Insert sponsored product after the second item (at position 3)
                     if (index === 2) {
                       return (
                         <div key={`sponsored-${item.id}`} className="space-y-6">
-                          <div className="relative">
+                          <div className="relative group">
                             <ItemCard 
-                              item={item}
+                              item={itemWithVoteDisplay}
                               categoryId={category.id}
                               rank={index + 1}
                               onVote={handleVote}
                               userVotedItemId={userVotedItemId}
+                              voteDisplay={voteDisplay}
+                              onViewHistory={() => {
+                                setSelectedItem(item);
+                                setIsHistoryOpen(true);
+                              }}
                             />
                           </div>
                           
@@ -166,14 +230,20 @@ const CategoryDetails = () => {
                     }
                     
                     return (
-                      <ItemCard 
-                        key={item.id}
-                        item={item}
-                        categoryId={category.id}
-                        rank={index + 1}
-                        onVote={handleVote}
-                        userVotedItemId={userVotedItemId}
-                      />
+                      <div key={item.id} className="relative group">
+                        <ItemCard 
+                          item={itemWithVoteDisplay}
+                          categoryId={category.id}
+                          rank={index + 1}
+                          onVote={handleVote}
+                          userVotedItemId={userVotedItemId}
+                          voteDisplay={voteDisplay}
+                          onViewHistory={() => {
+                            setSelectedItem(item);
+                            setIsHistoryOpen(true);
+                          }}
+                        />
+                      </div>
                     );
                   })}
                 </div>
@@ -223,6 +293,22 @@ const CategoryDetails = () => {
           </div>
         </div>
       </main>
+      
+      {/* History Dialog */}
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Ranking History</DialogTitle>
+          </DialogHeader>
+          {selectedItem && selectedItem.voteHistory ? (
+            <VoteHistory history={selectedItem.voteHistory} itemName={selectedItem.name} />
+          ) : (
+            <div className="text-center py-6 text-gray-500">
+              No history available for this item yet.
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       
       {/* Footer */}
       <footer className="py-6 px-4 bg-white border-t">

@@ -5,18 +5,28 @@ import { Badge } from '@/components/ui/badge';
 import VoteButton from './VoteButton';
 import { currentUser } from '@/lib/data';
 import ItemIcon from './ItemIcon';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ItemCardProps {
-  item: Item & { productUrl?: string };
+  item: Item & { productUrl?: string; voteDisplay?: string };
   categoryId: string;
   rank: number;
   onVote: (itemId: string) => void;
   userVotedItemId: string | undefined;
+  voteDisplay?: string;
+  onViewHistory?: () => void;
 }
 
-const ItemCard = ({ item, categoryId, rank, onVote, userVotedItemId }: ItemCardProps) => {
+const ItemCard = ({ 
+  item, 
+  categoryId, 
+  rank, 
+  onVote, 
+  userVotedItemId, 
+  voteDisplay,
+  onViewHistory 
+}: ItemCardProps) => {
   const isVoted = userVotedItemId === item.id;
   
   // For demo purposes, generate a product URL if none exists
@@ -57,13 +67,13 @@ const ItemCard = ({ item, categoryId, rank, onVote, userVotedItemId }: ItemCardP
                 <ItemIcon itemName={item.name} targetUrl={productUrl} />
               </div>
               <Badge variant="outline" className="ml-2 bg-gray-50">
-                {item.voteCount} votes
+                {voteDisplay || `${item.voteCount} votes`}
               </Badge>
             </div>
             <p className="text-gray-600 text-sm mb-4">{item.description}</p>
             
-            {productUrl && (
-              <div className="mb-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {productUrl && (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -73,8 +83,20 @@ const ItemCard = ({ item, categoryId, rank, onVote, userVotedItemId }: ItemCardP
                   Visit Website
                   <ExternalLink className="ml-1.5 h-3 w-3" />
                 </Button>
-              </div>
-            )}
+              )}
+              
+              {onViewHistory && item.voteHistory && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs h-8 text-gray-600 border-gray-200 hover:bg-gray-50"
+                  onClick={onViewHistory}
+                >
+                  View History
+                  <History className="ml-1.5 h-3 w-3" />
+                </Button>
+              )}
+            </div>
           </div>
           
           <div className="mt-4">
