@@ -6,23 +6,31 @@ import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import ItemCard from '@/components/ItemCard';
 import { getCategoryById, voteForItem, currentUser } from '@/lib/data';
-import { Item } from '@/lib/types';
+import { Item, Category } from '@/lib/types';
 import { AdCard } from '@/components/SponsoredSection';
 import AdFooter from '@/components/AdFooter';
 import SidebarAd from '@/components/SidebarAd';
 
 const CategoryDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const category = getCategoryById(id || '');
+  const [category, setCategory] = useState<Category | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   
+  // Fetch and set up category data
   useEffect(() => {
-    if (category) {
-      // Sort items by vote count
-      const sortedItems = [...category.items].sort((a, b) => b.voteCount - a.voteCount);
-      setItems(sortedItems);
-    }
-  }, [category]);
+    const fetchCategory = () => {
+      const fetchedCategory = getCategoryById(id || '');
+      setCategory(fetchedCategory || null);
+      
+      if (fetchedCategory) {
+        // Sort items by vote count
+        const sortedItems = [...fetchedCategory.items].sort((a, b) => b.voteCount - a.voteCount);
+        setItems(sortedItems);
+      }
+    };
+    
+    fetchCategory();
+  }, [id]);
   
   const userVotedItemId = currentUser?.votes[id || ''];
   
@@ -31,6 +39,8 @@ const CategoryDetails = () => {
       toast.error('You must be logged in to vote');
       return;
     }
+    
+    if (!category) return;
     
     const success = voteForItem(id || '', itemId);
     
@@ -42,9 +52,12 @@ const CategoryDetails = () => {
         toast.success('Your vote has been recorded!');
       }
       
-      // Update the items to reflect the new vote count
-      if (category) {
-        const sortedItems = [...category.items].sort((a, b) => b.voteCount - a.voteCount);
+      // Update the category and items to reflect the new vote count immediately
+      const updatedCategory = getCategoryById(id || '');
+      setCategory(updatedCategory || null);
+      
+      if (updatedCategory) {
+        const sortedItems = [...updatedCategory.items].sort((a, b) => b.voteCount - a.voteCount);
         setItems(sortedItems);
       }
     } else {
@@ -77,6 +90,9 @@ const CategoryDetails = () => {
       </div>
     );
   }
+  
+  // Calculate total votes for percentage display
+  const totalVotes = items.reduce((sum, item) => sum + item.voteCount, 0);
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -126,6 +142,7 @@ const CategoryDetails = () => {
                   <li>• You can vote for one item in this category.</li>
                   <li>• You can change your vote at any time.</li>
                   <li>• Results are updated in real-time.</li>
+                  <li>• {category.settings.displayVoteAs === 'percentage' ? 'Percentages show the proportion of total votes.' : 'Vote counts show the total number of votes.'}</li>
                 </ul>
               </div>
               
@@ -142,7 +159,7 @@ const CategoryDetails = () => {
                           <div className="relative">
                             <ItemCard 
                               item={item}
-                              categoryId={category.id}
+                              category={category}
                               rank={index + 1}
                               onVote={handleVote}
                               userVotedItemId={userVotedItemId}
@@ -169,7 +186,7 @@ const CategoryDetails = () => {
                       <ItemCard 
                         key={item.id}
                         item={item}
-                        categoryId={category.id}
+                        category={category}
                         rank={index + 1}
                         onVote={handleVote}
                         userVotedItemId={userVotedItemId}
@@ -192,7 +209,7 @@ const CategoryDetails = () => {
                   <div>
                     <span className="text-gray-500">Total Votes:</span>
                     <span className="ml-2 font-medium">
-                      {items.reduce((sum, item) => sum + item.voteCount, 0)}
+                      {totalVotes}
                     </span>
                   </div>
                   <div>
@@ -201,6 +218,12 @@ const CategoryDetails = () => {
                       {userVotedItemId 
                         ? items.find(item => item.id === userVotedItemId)?.name || "Unknown" 
                         : "Not voted yet"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Display Format:</span>
+                    <span className="ml-2 font-medium">
+                      {category.settings.displayVoteAs === 'percentage' ? 'Percentage' : 'Vote Count'}
                     </span>
                   </div>
                 </div>

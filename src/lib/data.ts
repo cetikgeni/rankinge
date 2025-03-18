@@ -1,5 +1,4 @@
-
-import { User, Category, Item, CategorySubmission } from './types';
+import { User, Category, Item, CategorySubmission, CategorySettings } from './types';
 
 // Demo users
 export const users: User[] = [
@@ -26,6 +25,11 @@ export const users: User[] = [
   }
 ];
 
+// Default category settings
+const defaultCategorySettings: CategorySettings = {
+  displayVoteAs: 'count'
+};
+
 // Demo categories with items
 export const categories: Category[] = [
   {
@@ -35,6 +39,7 @@ export const categories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1581006852262-e4307cf6283a?q=80&w=2787&auto=format&fit=crop',
     isApproved: true,
     createdBy: '1',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '1',
@@ -115,6 +120,7 @@ export const categories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?q=80&w=2825&auto=format&fit=crop',
     isApproved: true,
     createdBy: '1',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '5',
@@ -195,6 +201,7 @@ export const categories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1507133750040-4a8f57021571?q=80&w=2787&auto=format&fit=crop',
     isApproved: true,
     createdBy: '2',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '9',
@@ -275,6 +282,7 @@ export const categories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=2680&auto=format&fit=crop',
     isApproved: true,
     createdBy: '3',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '13',
@@ -355,6 +363,7 @@ export const categories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1552895638-f7fe08d2f7d5?q=80&w=2874&auto=format&fit=crop',
     isApproved: true,
     createdBy: '2',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '20',
@@ -435,6 +444,7 @@ export const categories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?q=80&w=2940&auto=format&fit=crop',
     isApproved: true,
     createdBy: '3',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '30',
@@ -515,6 +525,7 @@ export const categories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2940&auto=format&fit=crop',
     isApproved: true,
     createdBy: '1',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '40',
@@ -595,6 +606,7 @@ export const categories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1605901309584-818e25960a8f?q=80&w=2619&auto=format&fit=crop',
     isApproved: true,
     createdBy: '2',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '50',
@@ -675,6 +687,7 @@ export const categories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=2942&auto=format&fit=crop',
     isApproved: true,
     createdBy: '3',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '60',
@@ -759,6 +772,7 @@ export const pendingCategories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1605901309584-818e25960a8f?q=80&w=2619&auto=format&fit=crop',
     isApproved: false,
     createdBy: '2',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '17',
@@ -790,6 +804,7 @@ export const pendingCategories: Category[] = [
     imageUrl: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?q=80&w=2874&auto=format&fit=crop',
     isApproved: false,
     createdBy: '1',
+    settings: { ...defaultCategorySettings },
     items: [
       {
         id: '70',
@@ -964,6 +979,21 @@ export const voteForItem = (categoryId: string, itemId: string): boolean => {
   return false;
 };
 
+// Update category settings
+export const updateCategorySettings = (categoryId: string, settings: Partial<CategorySettings>): boolean => {
+  if (!currentUser?.isAdmin) return false;
+  
+  const category = getCategoryById(categoryId);
+  if (!category) return false;
+  
+  category.settings = {
+    ...category.settings,
+    ...settings
+  };
+  
+  return true;
+};
+
 // Submit new category
 export const submitCategory = (submission: CategorySubmission): boolean => {
   if (!currentUser) return false;
@@ -975,12 +1005,14 @@ export const submitCategory = (submission: CategorySubmission): boolean => {
     imageUrl: 'https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=2940&auto=format&fit=crop',
     isApproved: false,
     createdBy: currentUser.id,
+    settings: { ...defaultCategorySettings },
     items: submission.items.map((item, index) => ({
       id: `new-${getAllCategories().length + 1}-${index + 1}`,
       name: item.name,
       description: item.description,
       imageUrl: 'https://images.unsplash.com/photo-1618588507085-c79565432917?q=80&w=2940&auto=format&fit=crop',
-      voteCount: 0
+      voteCount: 0,
+      productUrl: item.productUrl
     }))
   };
   
@@ -1017,3 +1049,4 @@ export const rejectCategory = (categoryId: string): boolean => {
   
   return true;
 };
+

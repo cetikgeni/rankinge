@@ -1,5 +1,5 @@
 
-import { Item } from '@/lib/types';
+import { Item, Category } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import VoteButton from './VoteButton';
@@ -10,17 +10,25 @@ import { Button } from '@/components/ui/button';
 
 interface ItemCardProps {
   item: Item & { productUrl?: string };
-  categoryId: string;
+  category: Category;
   rank: number;
   onVote: (itemId: string) => void;
   userVotedItemId: string | undefined;
 }
 
-const ItemCard = ({ item, categoryId, rank, onVote, userVotedItemId }: ItemCardProps) => {
+const ItemCard = ({ item, category, rank, onVote, userVotedItemId }: ItemCardProps) => {
   const isVoted = userVotedItemId === item.id;
   
   // For demo purposes, generate a product URL if none exists
   const productUrl = item.productUrl || `https://example.com/product/${item.name.toLowerCase().replace(/\s+/g, '-')}`;
+  
+  // Calculate total votes in category for percentage
+  const totalVotes = category.items.reduce((sum, item) => sum + item.voteCount, 0);
+  
+  // Format vote display based on category settings
+  const voteDisplay = category.settings.displayVoteAs === 'percentage' 
+    ? `${totalVotes > 0 ? Math.round((item.voteCount / totalVotes) * 100) : 0}%`
+    : `${item.voteCount} votes`;
   
   return (
     <Card className={`overflow-hidden transition-all ${isVoted ? 'ring-2 ring-brand-purple/20' : ''}`}>
@@ -57,7 +65,7 @@ const ItemCard = ({ item, categoryId, rank, onVote, userVotedItemId }: ItemCardP
                 <ItemIcon itemName={item.name} targetUrl={productUrl} />
               </div>
               <Badge variant="outline" className="ml-2 bg-gray-50">
-                {item.voteCount} votes
+                {voteDisplay}
               </Badge>
             </div>
             <p className="text-gray-600 text-sm mb-4">{item.description}</p>

@@ -13,6 +13,11 @@ export interface Item {
   description: string;
   imageUrl: string;
   voteCount: number;
+  productUrl?: string;
+}
+
+export interface CategorySettings {
+  displayVoteAs: 'count' | 'percentage';
 }
 
 export interface Category {
@@ -23,6 +28,7 @@ export interface Category {
   items: Item[];
   isApproved: boolean;
   createdBy: string; // userId
+  settings: CategorySettings;
 }
 
 export interface CategorySubmission {
