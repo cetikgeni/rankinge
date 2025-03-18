@@ -1,37 +1,23 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ChevronRight, Filter, ExternalLink, ChevronDown, SortAsc, SortDesc, BarChart2, Percent } from 'lucide-react';
+import { Search, ChevronRight, Filter, ExternalLink, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
-import { getApprovedCategories, voteForItem, currentUser, updateCategorySettings } from '@/lib/data';
+import { getApprovedCategories, voteForItem, currentUser } from '@/lib/data';
 import { getAllCategoryIcons } from '@/lib/category-icons';
 import { Category, Item } from '@/lib/types';
 import VoteButton from '@/components/VoteButton';
-import { 
-  Collapsible, 
-  CollapsibleContent, 
-  CollapsibleTrigger 
-} from '@/components/ui/collapsible';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const Categories = () => {
   const allCategories = getApprovedCategories();
   const categoryGroups = getAllCategoryIcons();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<'alphabetical' | 'mostItems' | 'mostVotes'>('alphabetical');
-  const [view, setView] = useState<'grid' | 'list'>('list');
   
   // Filter categories based on search term and selected group
   const filteredCategories = allCategories.filter(category => {
@@ -45,22 +31,6 @@ const Categories = () => {
       : true;
     
     return matchesSearch && matchesGroup;
-  });
-  
-  // Sort categories based on selected sort order
-  const sortedCategories = [...filteredCategories].sort((a, b) => {
-    switch (sortOrder) {
-      case 'alphabetical':
-        return a.name.localeCompare(b.name);
-      case 'mostItems':
-        return b.items.length - a.items.length;
-      case 'mostVotes':
-        const totalVotesA = a.items.reduce((sum, item) => sum + item.voteCount, 0);
-        const totalVotesB = b.items.reduce((sum, item) => sum + item.voteCount, 0);
-        return totalVotesB - totalVotesA;
-      default:
-        return 0;
-    }
   });
   
   return (
@@ -130,58 +100,18 @@ const Categories = () => {
               <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
                 <h1 className="text-2xl font-bold mb-4 text-gray-900">Browse Categories</h1>
                 
-                {/* Search and Filter Bar */}
-                <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
-                  <div className="relative flex-grow">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Search className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <Input
-                      type="text"
-                      placeholder="Search categories..."
-                      className="pl-10"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                {/* Search Bar */}
+                <div className="relative mb-6">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-gray-400" />
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex items-center gap-1">
-                          <SortAsc className="h-4 w-4" />
-                          <span className="hidden sm:inline">Sort</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem 
-                          onClick={() => setSortOrder('alphabetical')}
-                          className={sortOrder === 'alphabetical' ? 'bg-gray-100' : ''}
-                        >
-                          Alphabetical
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => setSortOrder('mostItems')}
-                          className={sortOrder === 'mostItems' ? 'bg-gray-100' : ''}
-                        >
-                          Most Items
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => setSortOrder('mostVotes')}
-                          className={sortOrder === 'mostVotes' ? 'bg-gray-100' : ''}
-                        >
-                          Most Votes
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    
-                    <Tabs value={view} onValueChange={(v) => setView(v as 'grid' | 'list')}>
-                      <TabsList className="grid grid-cols-2 h-9">
-                        <TabsTrigger value="list" className="px-3">List</TabsTrigger>
-                        <TabsTrigger value="grid" className="px-3">Grid</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </div>
+                  <Input
+                    type="text"
+                    placeholder="Search categories..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
                 
                 {selectedGroup && (
@@ -202,67 +132,34 @@ const Categories = () => {
               </div>
               
               {/* Categories List */}
-              <Tabs value={view} className="space-y-4">
-                <TabsContent value="list" className="m-0">
-                  {sortedCategories.length > 0 ? (
-                    <div className="bg-white rounded-lg shadow-sm">
-                      <div className="grid grid-cols-1 divide-y">
-                        {sortedCategories.map((category) => (
-                          <CategoryListItem 
-                            key={category.id} 
-                            category={category} 
-                            categoryGroups={categoryGroups} 
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
-                      <p className="text-gray-600 mb-4">
-                        {searchTerm 
-                          ? `No categories matching "${searchTerm}"`
-                          : "There are no categories available for this filter."}
-                      </p>
-                      <Button onClick={() => {
-                        setSearchTerm('');
-                        setSelectedGroup(null);
-                      }}>
-                        Clear filters
-                      </Button>
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="grid" className="m-0">
-                  {sortedCategories.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {sortedCategories.map((category) => (
-                        <CategoryGridItem 
-                          key={category.id} 
-                          category={category} 
-                          categoryGroups={categoryGroups} 
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
-                      <p className="text-gray-600 mb-4">
-                        {searchTerm 
-                          ? `No categories matching "${searchTerm}"`
-                          : "There are no categories available for this filter."}
-                      </p>
-                      <Button onClick={() => {
-                        setSearchTerm('');
-                        setSelectedGroup(null);
-                      }}>
-                        Clear filters
-                      </Button>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+              {filteredCategories.length > 0 ? (
+                <div className="bg-white rounded-lg shadow-sm">
+                  <div className="grid grid-cols-1 divide-y">
+                    {filteredCategories.map((category) => (
+                      <CategoryListItem 
+                        key={category.id} 
+                        category={category} 
+                        categoryGroups={categoryGroups} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-16 bg-white rounded-lg shadow-sm">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
+                  <p className="text-gray-600 mb-4">
+                    {searchTerm 
+                      ? `No categories matching "${searchTerm}"`
+                      : "There are no categories available for this filter."}
+                  </p>
+                  <Button onClick={() => {
+                    setSearchTerm('');
+                    setSelectedGroup(null);
+                  }}>
+                    Clear filters
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -295,26 +192,6 @@ const CategoryListItem = ({ category, categoryGroups }: {
   
   // Get user's current vote for this category
   const userVotedItemId = currentUser?.votes[category.id];
-  
-  // Calculate total votes for the percentage view
-  const totalVotes = category.items.reduce((sum, item) => sum + item.voteCount, 0);
-  
-  // State to track vote display mode (count or percentage)
-  const [displayVoteAs, setDisplayVoteAs] = useState<'count' | 'percentage'>(
-    category.displayVoteAs || 'count'
-  );
-  
-  // Toggle between count and percentage display
-  const toggleVoteDisplay = () => {
-    if (!currentUser?.isAdmin) return;
-    
-    const newDisplayMode = displayVoteAs === 'count' ? 'percentage' : 'count';
-    setDisplayVoteAs(newDisplayMode);
-    
-    // Update the category setting
-    updateCategorySettings(category.id, { displayVoteAs: newDisplayMode });
-    toast.success(`Display switched to ${newDisplayMode === 'count' ? 'vote count' : 'percentage'}`);
-  };
   
   // Handle vote action
   const handleVote = (itemId: string) => {
@@ -350,7 +227,7 @@ const CategoryListItem = ({ category, categoryGroups }: {
         />
         <div className="flex-grow">
           <div className="flex justify-between items-start mb-2">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-gray-900">{category.name}</h3>
               <Badge 
                 variant="outline" 
@@ -358,21 +235,6 @@ const CategoryListItem = ({ category, categoryGroups }: {
               >
                 {categoryGroup}
               </Badge>
-              
-              {currentUser?.isAdmin && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 text-xs text-gray-500"
-                  onClick={toggleVoteDisplay}
-                >
-                  {displayVoteAs === 'count' ? (
-                    <BarChart2 className="h-3 w-3" />
-                  ) : (
-                    <Percent className="h-3 w-3" />
-                  )}
-                </Button>
-              )}
             </div>
             <Link 
               to={`/categories/${category.id}`} 
@@ -419,9 +281,7 @@ const CategoryListItem = ({ category, categoryGroups }: {
                       </Badge>
                       <span className="font-medium">{item.name}</span>
                       <Badge variant="outline" className="ml-2 bg-gray-50 text-xs">
-                        {displayVoteAs === 'percentage' && totalVotes > 0
-                          ? `${Math.round((item.voteCount / totalVotes) * 100)}%`
-                          : `${item.voteCount} votes`}
+                        {item.voteCount} votes
                       </Badge>
                     </div>
                     
@@ -431,7 +291,6 @@ const CategoryListItem = ({ category, categoryGroups }: {
                       onVote={() => {
                         handleVote(item.id);
                       }}
-                      size="sm"
                     />
                   </div>
                 ))}
@@ -443,76 +302,6 @@ const CategoryListItem = ({ category, categoryGroups }: {
             <span className="text-gray-500">Total: {category.items.length} items</span>
           </div>
         </div>
-      </div>
-    </div>
-  );
-};
-
-const CategoryGridItem = ({ category, categoryGroups }: { 
-  category: Category, 
-  categoryGroups: ReturnType<typeof getAllCategoryIcons> 
-}) => {
-  // Get top 3 items
-  const topItems = [...category.items]
-    .sort((a, b) => b.voteCount - a.voteCount)
-    .slice(0, 3);
-  
-  // Calculate total votes for the percentage view
-  const totalVotes = category.items.reduce((sum, item) => sum + item.voteCount, 0);
-  
-  // Use the category's display setting or default to count
-  const displayVoteAs = category.displayVoteAs || 'count';
-  
-  // Get the category group this category belongs to
-  const categoryGroup = selectedGroupForCategory(category, categoryGroups);
-  
-  return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-      <div className="h-40 overflow-hidden">
-        <img 
-          src={category.imageUrl} 
-          alt={category.name} 
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900">{category.name}</h3>
-          <Badge 
-            variant="outline" 
-            className="bg-gray-50 text-xs capitalize"
-          >
-            {categoryGroup}
-          </Badge>
-        </div>
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{category.description}</p>
-        
-        {topItems.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase">Top Items</h4>
-            {topItems.map((item, index) => (
-              <div key={item.id} className="flex justify-between items-center text-sm">
-                <div className="flex items-center">
-                  <span className={`text-gray-800 ${index === 0 ? 'font-medium' : ''}`}>
-                    {index + 1}. {item.name}
-                  </span>
-                </div>
-                <Badge variant="outline" className="ml-2 bg-gray-50 text-xs">
-                  {displayVoteAs === 'percentage' && totalVotes > 0
-                    ? `${Math.round((item.voteCount / totalVotes) * 100)}%`
-                    : `${item.voteCount}`}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        <Link 
-          to={`/categories/${category.id}`} 
-          className="text-brand-purple text-sm flex items-center hover:underline mt-2"
-        >
-          View Details <ChevronRight className="h-3.5 w-3.5 ml-1" />
-        </Link>
       </div>
     </div>
   );

@@ -13,14 +13,6 @@ export interface Item {
   description: string;
   imageUrl: string;
   voteCount: number;
-  voteHistory?: VoteHistoryPoint[]; // Added vote history
-  productUrl?: string; // Make it explicit
-}
-
-export interface VoteHistoryPoint {
-  date: string; // ISO date string
-  position: number;
-  voteCount: number;
 }
 
 export interface Category {
@@ -31,7 +23,6 @@ export interface Category {
   items: Item[];
   isApproved: boolean;
   createdBy: string; // userId
-  displayVoteAs?: 'count' | 'percentage'; // Admin setting for display preference
 }
 
 export interface CategorySubmission {

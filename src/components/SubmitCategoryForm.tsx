@@ -102,21 +102,17 @@ const SubmitCategoryForm = () => {
     
     setIsSubmitting(true);
     
-    // Create submission
+    // Create submission without productUrl
     const submission: CategorySubmission = {
       name: formData.name,
       description: formData.description,
-      items: formData.items.map(({ name, description, productUrl }) => ({ 
-        name, 
-        description,
-        productUrl 
-      }))
+      items: formData.items.map(({ name, description }) => ({ name, description }))
     };
     
     // Submit category
-    const newCategory = submitCategory(submission);
+    const success = submitCategory(submission);
     
-    if (newCategory) {
+    if (success) {
       toast.success('Category submitted for review!');
       navigate('/');
     } else {
