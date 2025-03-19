@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { getAllCategoryIcons } from '@/lib/category-icons';
@@ -11,39 +10,6 @@ interface CategoryGroupProps {
   showImages?: boolean;
   limit?: number;
 }
-
-interface AdCardProps {
-  title: string;
-  description: string;
-  imageUrl: string;
-  targetUrl: string;
-  category: string;
-}
-
-// AdCard component for sponsored content
-export const AdCard = ({ title, description, imageUrl, targetUrl, category }: AdCardProps) => {
-  return (
-    <Link 
-      to={targetUrl}
-      className="block p-4"
-    >
-      <div className="flex flex-col md:flex-row items-start gap-4">
-        <div className="w-full md:w-1/3 h-32 rounded-md overflow-hidden">
-          <img 
-            src={imageUrl} 
-            alt={title} 
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <div className="w-full md:w-2/3">
-          <div className="text-sm text-brand-purple mb-1 font-medium">{category}</div>
-          <h3 className="text-lg font-bold mb-2">{title}</h3>
-          <p className="text-gray-600 text-sm">{description}</p>
-        </div>
-      </div>
-    </Link>
-  );
-};
 
 // The CategoryGroup component shows categories by group name
 export const CategoryGroup = ({ title, categoryGroup, showImages = false, limit = 4 }: CategoryGroupProps) => {
