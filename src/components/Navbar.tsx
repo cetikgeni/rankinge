@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -35,23 +34,23 @@ const Navbar = () => {
       <div className="container px-4 mx-auto flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
-          <BarChart className="h-6 w-6 text-brand-purple" />
-          <span className="text-xl font-bold bg-gradient-to-r from-brand-purple to-brand-teal bg-clip-text text-transparent">
-            {isAltHomePage ? 'Rankinge' : 'Categlorium'}
+          <BarChart className="h-6 w-6 text-brand-green" />
+          <span className="text-xl font-bold bg-gradient-to-r from-brand-green to-brand-darkgreen bg-clip-text text-transparent">
+            Rankinge
           </span>
         </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex md:items-center md:space-x-4">
-          <Link to="/categories" className="text-gray-700 hover:text-brand-purple transition-colors">
+          <Link to="/categories" className="text-gray-700 hover:text-brand-green transition-colors">
             Categories
           </Link>
-          <Link to="/submit" className="text-gray-700 hover:text-brand-purple transition-colors">
+          <Link to="/submit" className="text-gray-700 hover:text-brand-green transition-colors">
             Submit
           </Link>
           
           {currentUser?.isAdmin && (
-            <Link to="/admin" className="text-gray-700 hover:text-brand-purple transition-colors">
+            <Link to="/admin" className="text-gray-700 hover:text-brand-green transition-colors">
               Admin
             </Link>
           )}
@@ -60,7 +59,7 @@ const Navbar = () => {
           {isHomePage ? (
             <Link 
               to="/alt" 
-              className="text-gray-700 hover:text-brand-purple transition-colors flex items-center gap-1"
+              className="text-gray-700 hover:text-brand-green transition-colors flex items-center gap-1"
             >
               <LayoutDashboard className="h-4 w-4" />
               <span>Alt Home</span>
@@ -68,7 +67,7 @@ const Navbar = () => {
           ) : isAltHomePage ? (
             <Link 
               to="/" 
-              className="text-gray-700 hover:text-brand-purple transition-colors flex items-center gap-1"
+              className="text-gray-700 hover:text-brand-green transition-colors flex items-center gap-1"
             >
               <LayoutDashboard className="h-4 w-4" />
               <span>Classic Home</span>
@@ -100,7 +99,7 @@ const Navbar = () => {
                   <span>Login</span>
                 </Link>
               </Button>
-              <Button asChild variant="default" size="sm">
+              <Button asChild variant="default" size="sm" className="bg-brand-green hover:bg-brand-green/90">
                 <Link to="/register" className="flex items-center gap-1">
                   <UserPlus className="h-4 w-4" />
                   <span>Register</span>
@@ -129,14 +128,14 @@ const Navbar = () => {
           <div className="container px-4 mx-auto flex flex-col space-y-3">
             <Link 
               to="/categories" 
-              className="text-gray-700 py-2 hover:text-brand-purple"
+              className="text-gray-700 py-2 hover:text-brand-green"
               onClick={() => setIsMenuOpen(false)}
             >
               Categories
             </Link>
             <Link 
               to="/submit" 
-              className="text-gray-700 py-2 hover:text-brand-purple"
+              className="text-gray-700 py-2 hover:text-brand-green"
               onClick={() => setIsMenuOpen(false)}
             >
               Submit
@@ -145,7 +144,7 @@ const Navbar = () => {
             {currentUser?.isAdmin && (
               <Link 
                 to="/admin" 
-                className="text-gray-700 py-2 hover:text-brand-purple"
+                className="text-gray-700 py-2 hover:text-brand-green"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Admin
@@ -156,7 +155,7 @@ const Navbar = () => {
             {isHomePage ? (
               <Link 
                 to="/alt" 
-                className="text-gray-700 py-2 hover:text-brand-purple flex items-center gap-1"
+                className="text-gray-700 py-2 hover:text-brand-green flex items-center gap-1"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <LayoutDashboard className="h-4 w-4 mr-1" />
@@ -165,7 +164,7 @@ const Navbar = () => {
             ) : isAltHomePage ? (
               <Link 
                 to="/" 
-                className="text-gray-700 py-2 hover:text-brand-purple flex items-center gap-1"
+                className="text-gray-700 py-2 hover:text-brand-green flex items-center gap-1"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <LayoutDashboard className="h-4 w-4 mr-1" />

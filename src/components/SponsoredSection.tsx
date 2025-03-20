@@ -34,6 +34,11 @@ export const AdCard = ({
   description,
   imageUrl,
   link
+}: {
+  title: string;
+  description: string;
+  imageUrl: string;
+  link: string;
 }) => {
   return <div className="rounded-lg border border-gray-200 overflow-hidden">
       <div className="h-40 overflow-hidden">
@@ -42,7 +47,7 @@ export const AdCard = ({
       <div className="p-4">
         <h3 className="font-bold text-lg mb-2">{title}</h3>
         <p className="text-gray-600 text-sm mb-4">{description}</p>
-        <Link to={link} className="text-brand-purple hover:text-brand-purple/80 flex items-center text-sm font-medium">
+        <Link to={link} className="text-brand-green hover:text-brand-green/80 flex items-center text-sm font-medium">
           Learn more
           <ArrowRight className="ml-1 h-4 w-4" />
         </Link>

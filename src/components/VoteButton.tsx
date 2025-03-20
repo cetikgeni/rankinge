@@ -46,8 +46,8 @@ const VoteButton = ({ isVoted, isLoggedIn, onVote, size = 'default' }: VoteButto
       onClick={handleVote}
       className={`w-full md:w-auto transition-all ${
         isVoted 
-          ? 'bg-brand-purple hover:bg-brand-purple/90 text-white' 
-          : 'hover:border-brand-purple hover:text-brand-purple'
+          ? 'bg-brand-green hover:bg-brand-green/90 text-white' 
+          : 'hover:border-brand-green hover:text-brand-green'
       } ${isAnimating ? 'animate-vote-pulse' : ''}`}
     >
       {isVoted ? (

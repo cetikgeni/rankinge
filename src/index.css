@@ -14,24 +14,24 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 262 55% 53%;
+    --primary: 142 58% 49%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 171 76% 51%;
+    --secondary: 142 66% 38%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 262 55% 96%;
-    --accent-foreground: 262 55% 53%;
+    --accent: 142 58% 96%;
+    --accent-foreground: 142 58% 49%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 262 55% 53%;
+    --ring: 142 58% 49%;
 
     --radius: 0.5rem;
 
@@ -42,7 +42,7 @@
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 142 58% 49%;
   }
 
   .dark {
@@ -55,16 +55,16 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 262 55% 53%;
+    --primary: 142 58% 49%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 171 76% 51%;
+    --secondary: 142 66% 38%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 262 55% 30%;
+    --accent: 142 58% 30%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
@@ -94,7 +94,7 @@
   }
 }
 
-/* Custom styles for Categlorium */
+/* Custom styles for Rankinge */
 .vote-enter {
   transform: scale(0.9);
   opacity: 0;
