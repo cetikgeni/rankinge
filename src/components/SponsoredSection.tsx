@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -48,4 +49,5 @@ export const AdCard = ({
       </div>
     </div>;
 };
+
 export default CategoryGroup;

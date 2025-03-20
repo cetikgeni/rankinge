@@ -13,8 +13,19 @@ import LimitedTimeContest from '@/components/LimitedTimeContest';
 import React from 'react';
 
 const Index = () => {
-  // Get the first 8 categories to display (increased from 4 to 8)
-  const featuredCategories = getApprovedCategories().slice(0, 8);
+  // Get categories to display
+  const allCategories = getApprovedCategories();
+  const featuredCategories = allCategories.slice(0, 8);
+  
+  // Get trending categories (sorting by total votes across all items)
+  const trendingCategories = [...allCategories]
+    .map(cat => ({
+      ...cat,
+      totalVotes: cat.items.reduce((sum, item) => sum + item.voteCount, 0)
+    }))
+    .sort((a, b) => b.totalVotes - a.totalVotes)
+    .slice(0, 4);
+  
   const allCategoryIcons = getAllCategoryIcons();
   
   return (
@@ -44,7 +55,51 @@ const Index = () => {
       {/* Featured Categories with images */}
       <CategoryGroup title="Featured Tech Categories" categoryGroup="Technology" showImages={true} limit={4} />
       
-      {/* Limited Time Contest Section */}
+      {/* Featured Categories - MOVED UP above Limited Time Contest */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">Popular Categories</h2>
+            <Link 
+              to="/categories" 
+              className="text-brand-purple hover:text-brand-purple/80 flex items-center text-sm font-medium"
+            >
+              View all categories
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredCategories.map((category) => (
+              <CategoryCard key={category.id} category={category} />
+            ))}
+          </div>
+        </div>
+      </section>
+      
+      {/* NEW SECTION: Trending Categories */}
+      <section className="py-16 px-4 bg-gradient-to-br from-brand-purple/5 to-brand-teal/5">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">Trending Categories</h2>
+            <Link 
+              to="/categories?sort=trending" 
+              className="text-brand-purple hover:text-brand-purple/80 flex items-center text-sm font-medium"
+            >
+              See all trending
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {trendingCategories.map((category) => (
+              <CategoryCard key={category.id} category={category} />
+            ))}
+          </div>
+        </div>
+      </section>
+      
+      {/* Limited Time Contest Section - MOVED DOWN below Popular Categories */}
       <LimitedTimeContest />
       
       {/* Three additional category rows with icons (no images) */}
@@ -93,28 +148,6 @@ const Index = () => {
                   )}
                 </ul>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      
-      {/* Featured Categories - Expanded from 4 to 8 */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Popular Categories</h2>
-            <Link 
-              to="/categories" 
-              className="text-brand-purple hover:text-brand-purple/80 flex items-center text-sm font-medium"
-            >
-              View all categories
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredCategories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
             ))}
           </div>
         </div>
