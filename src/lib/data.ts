@@ -994,6 +994,60 @@ export const updateCategorySettings = (categoryId: string, settings: Partial<Cat
   return true;
 };
 
+// Update an existing category
+export const updateCategory = (categoryId: string, submission: CategorySubmission): boolean => {
+  if (!currentUser) return false;
+  
+  // Find the category to update
+  const allCategories = getAllCategories();
+  const categoryIndex = allCategories.findIndex(cat => cat.id === categoryId);
+  
+  if (categoryIndex === -1) return false;
+  
+  const category = allCategories[categoryIndex];
+  
+  // Check if user owns this category
+  if (category.createdBy !== currentUser.id) return false;
+  
+  // Update the category
+  const updatedCategory = {
+    ...category,
+    name: submission.name,
+    description: submission.description,
+    categoryGroup: submission.categoryGroup,
+    imageUrl: submission.imageUrl || category.imageUrl,
+    // Reset to pending if significant changes were made
+    isApproved: false,
+    items: submission.items.map((item, index) => {
+      // Try to preserve existing item IDs and vote counts
+      const existingItem = category.items[index];
+      return {
+        id: existingItem?.id || `updated-${Date.now()}-${index}`,
+        name: item.name,
+        description: item.description,
+        imageUrl: item.imageUrl || existingItem?.imageUrl || 'https://images.unsplash.com/photo-1618588507085-c79565432917?q=80&w=2940&auto=format&fit=crop',
+        voteCount: existingItem?.voteCount || 0,
+        productUrl: item.productUrl
+      };
+    })
+  };
+  
+  // Replace the category in the appropriate array
+  if (category.isApproved) {
+    const index = categories.findIndex(cat => cat.id === categoryId);
+    if (index !== -1) {
+      categories[index] = updatedCategory;
+    }
+  } else {
+    const index = pendingCategories.findIndex(cat => cat.id === categoryId);
+    if (index !== -1) {
+      pendingCategories[index] = updatedCategory;
+    }
+  }
+  
+  return true;
+};
+
 // Submit new category
 export const submitCategory = (submission: CategorySubmission): boolean => {
   if (!currentUser) return false;
@@ -1049,4 +1103,3 @@ export const rejectCategory = (categoryId: string): boolean => {
   
   return true;
 };
-

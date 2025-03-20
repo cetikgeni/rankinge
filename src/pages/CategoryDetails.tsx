@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -16,14 +15,12 @@ const CategoryDetails = () => {
   const [category, setCategory] = useState<Category | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   
-  // Fetch and set up category data
   useEffect(() => {
     const fetchCategory = () => {
       const fetchedCategory = getCategoryById(id || '');
       setCategory(fetchedCategory || null);
       
       if (fetchedCategory) {
-        // Sort items by vote count
         const sortedItems = [...fetchedCategory.items].sort((a, b) => b.voteCount - a.voteCount);
         setItems(sortedItems);
       }
@@ -45,14 +42,12 @@ const CategoryDetails = () => {
     const success = voteForItem(id || '', itemId);
     
     if (success) {
-      // If already voted for this item, show a different message
       if (userVotedItemId === itemId) {
         toast('You already voted for this item');
       } else {
         toast.success('Your vote has been recorded!');
       }
       
-      // Update the category and items to reflect the new vote count immediately
       const updatedCategory = getCategoryById(id || '');
       setCategory(updatedCategory || null);
       
@@ -65,12 +60,11 @@ const CategoryDetails = () => {
     }
   };
   
-  // Sponsored product data - in a real app this would come from an API
   const sponsoredProduct = {
     title: "Premium " + (category?.name || "Product"),
     description: "Ultra-comfortable design with advanced features. Limited time offer.",
     imageUrl: category?.items[0]?.imageUrl || "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=2560&auto=format&fit=crop",
-    targetUrl: "https://example.com/premium-product",
+    link: "https://example.com/premium-product",
     category: category?.name || "Products"
   };
   
@@ -91,7 +85,6 @@ const CategoryDetails = () => {
     );
   }
   
-  // Calculate total votes for percentage display
   const totalVotes = items.reduce((sum, item) => sum + item.voteCount, 0);
   
   return (
@@ -100,7 +93,6 @@ const CategoryDetails = () => {
       
       <main className="flex-grow py-10 px-4 bg-gray-50">
         <div className="container mx-auto max-w-7xl">
-          {/* Back Link */}
           <Link 
             to="/categories" 
             className="inline-flex items-center text-brand-purple hover:text-brand-purple/80 mb-6"
@@ -111,7 +103,6 @@ const CategoryDetails = () => {
           
           <div className="flex flex-col md:flex-row gap-8">
             <div className="md:w-3/4">
-              {/* Category Header */}
               <div className="relative h-64 rounded-lg overflow-hidden mb-8">
                 <img 
                   src={category.imageUrl} 
@@ -135,7 +126,6 @@ const CategoryDetails = () => {
                 </div>
               )}
               
-              {/* Voting Instructions */}
               <div className="bg-white rounded-md p-4 mb-8 shadow-sm">
                 <h2 className="text-lg font-medium mb-2">Voting Rules</h2>
                 <ul className="text-sm text-gray-700 space-y-1">
@@ -146,13 +136,11 @@ const CategoryDetails = () => {
                 </ul>
               </div>
               
-              {/* Items List */}
               <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
                 <h2 className="text-2xl font-bold mb-6">Rankings</h2>
                 
                 <div className="space-y-6">
                   {items.map((item, index) => {
-                    // Insert sponsored product after the second item (at position 3)
                     if (index === 2) {
                       return (
                         <div key={`sponsored-${item.id}`} className="space-y-6">
@@ -174,7 +162,7 @@ const CategoryDetails = () => {
                               title={sponsoredProduct.title}
                               description={sponsoredProduct.description}
                               imageUrl={sponsoredProduct.imageUrl}
-                              targetUrl={sponsoredProduct.targetUrl}
+                              link={sponsoredProduct.link}
                               category={sponsoredProduct.category}
                             />
                           </div>
@@ -197,7 +185,6 @@ const CategoryDetails = () => {
               </div>
             </div>
             
-            {/* Sidebar */}
             <div className="md:w-1/4 space-y-6">
               <div className="bg-white p-4 rounded-lg shadow-sm">
                 <h2 className="font-bold text-lg mb-4">About This Ranking</h2>
@@ -247,7 +234,6 @@ const CategoryDetails = () => {
         </div>
       </main>
       
-      {/* Footer */}
       <footer className="py-6 px-4 bg-white border-t">
         <div className="container mx-auto max-w-7xl">
           <AdFooter />

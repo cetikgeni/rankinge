@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { getAllCategoryIcons } from '@/lib/category-icons';
 import { getApprovedCategories } from '@/lib/data';
+
 interface CategoryGroupProps {
   title: string;
   categoryGroup: string;
@@ -28,7 +29,7 @@ export const CategoryGroup = ({
   return;
 };
 
-// Create and export the AdCard component for CategoryDetails.tsx
+// Updated AdCard component to use link prop instead of targetUrl
 export const AdCard = ({
   title,
   description,
