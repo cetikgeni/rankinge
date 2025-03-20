@@ -29,6 +29,7 @@ export interface Category {
   isApproved: boolean;
   createdBy: string; // userId
   settings: CategorySettings;
+  categoryGroup?: string;
 }
 
 export interface CategorySubmission {
@@ -37,8 +38,11 @@ export interface CategorySubmission {
   items: { 
     name: string; 
     description: string;
-    productUrl?: string; 
+    productUrl?: string;
+    imageUrl?: string;
   }[];
+  categoryGroup?: string;
+  imageUrl?: string;
 }
 
 export interface AuthState {

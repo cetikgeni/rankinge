@@ -1,34 +1,96 @@
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { 
+  Plus, 
+  Trash2, 
+  Link as LinkIcon, 
+  ExternalLink, 
+  Upload,
+  Image as ImageIcon 
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CategorySubmission } from '@/lib/types';
-import { submitCategory, currentUser } from '@/lib/data';
+import { submitCategory, currentUser, getAllCategoryIcons, updateCategory, getCategoryById } from '@/lib/data';
 import AIAssistant from './AIAssistant';
+import ImageUploader from './ImageUploader';
 
 const SubmitCategoryForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [categoryGroups, setCategoryGroups] = useState<{name: string}[]>([]);
   
-  const [formData, setFormData] = useState<CategorySubmission & { items: Array<{ name: string; description: string; productUrl?: string }> }>({
+  const [formData, setFormData] = useState<CategorySubmission & { 
+    items: Array<{ name: string; description: string; productUrl?: string; imageUrl?: string }>,
+    categoryGroup?: string;
+    imageUrl?: string;
+  }>({
     name: '',
     description: '',
+    categoryGroup: '',
+    imageUrl: '',
     items: [
-      { name: '', description: '', productUrl: '' },
-      { name: '', description: '', productUrl: '' },
-      { name: '', description: '', productUrl: '' }
+      { name: '', description: '', productUrl: '', imageUrl: '' },
+      { name: '', description: '', productUrl: '', imageUrl: '' },
+      { name: '', description: '', productUrl: '', imageUrl: '' }
     ]
   });
+
+  useEffect(() => {
+    // Extract category groups from the icon data
+    const allCategoryIcons = getAllCategoryIcons();
+    setCategoryGroups(allCategoryIcons.map(group => ({ name: group.name })));
+    
+    // Check if we're in edit mode
+    const params = new URLSearchParams(location.search);
+    const editId = params.get('edit');
+    
+    if (editId) {
+      const category = getCategoryById(editId);
+      if (category && category.createdBy === currentUser?.id) {
+        setIsEditing(true);
+        setCategoryId(editId);
+        
+        // Populate form with existing category data
+        setFormData({
+          name: category.name,
+          description: category.description,
+          imageUrl: category.imageUrl,
+          categoryGroup: '', // This will need to be matched or left blank
+          items: category.items.map(item => ({
+            name: item.name,
+            description: item.description,
+            productUrl: item.productUrl || '',
+            imageUrl: item.imageUrl
+          }))
+        });
+      } else {
+        // If the category doesn't exist or doesn't belong to the user, redirect
+        toast.error('You can only edit your own categories');
+        navigate('/');
+      }
+    }
+  }, [location.search, navigate]);
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleCategoryGroupChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      categoryGroup: value
     }));
   };
 
@@ -46,10 +108,30 @@ const SubmitCategoryForm = () => {
     }));
   };
 
+  const handleImageUpload = (imageUrl: string) => {
+    setFormData(prev => ({
+      ...prev,
+      imageUrl
+    }));
+  };
+
+  const handleItemImageUpload = (index: number, imageUrl: string) => {
+    const updatedItems = [...formData.items];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      imageUrl
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      items: updatedItems
+    }));
+  };
+
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { name: '', description: '', productUrl: '' }]
+      items: [...prev.items, { name: '', description: '', productUrl: '', imageUrl: '' }]
     }));
   };
 
@@ -102,26 +184,44 @@ const SubmitCategoryForm = () => {
     
     setIsSubmitting(true);
     
-    const submission: CategorySubmission = {
+    const submission: CategorySubmission & { categoryGroup?: string; imageUrl?: string } = {
       name: formData.name,
       description: formData.description,
-      items: formData.items.map(({ name, description, productUrl }) => ({ 
+      categoryGroup: formData.categoryGroup,
+      imageUrl: formData.imageUrl,
+      items: formData.items.map(({ name, description, productUrl, imageUrl }) => ({ 
         name, 
         description,
-        productUrl: productUrl && productUrl.trim() !== '' ? productUrl : undefined
+        productUrl: productUrl && productUrl.trim() !== '' ? productUrl : undefined,
+        imageUrl: imageUrl && imageUrl.trim() !== '' ? imageUrl : undefined
       }))
     };
     
-    // Submit category
-    const success = submitCategory(submission);
+    let success = false;
+    
+    if (isEditing && categoryId) {
+      // Update existing category
+      success = updateCategory(categoryId, submission);
+      if (success) {
+        toast.success('Category updated successfully!');
+      } else {
+        toast.error('Failed to update category');
+      }
+    } else {
+      // Submit new category
+      success = submitCategory(submission);
+      if (success) {
+        toast.success('Category submitted for review!');
+      } else {
+        toast.error('Failed to submit category');
+      }
+    }
     
     if (success) {
-      toast.success('Category submitted for review!');
       navigate('/');
-    } else {
-      toast.error('Failed to submit category');
-      setIsSubmitting(false);
     }
+    
+    setIsSubmitting(false);
   };
 
   const handleAICategoryAssist = (suggestion: string) => {
@@ -173,13 +273,16 @@ const SubmitCategoryForm = () => {
     const formattedItems = data.items.map(item => ({
       name: item.name,
       description: item.description,
-      productUrl: ''
+      productUrl: '',
+      imageUrl: ''
     }));
 
     // Update the entire form with the AI suggested category
     setFormData({
       name: data.name,
       description: data.description,
+      categoryGroup: formData.categoryGroup,
+      imageUrl: formData.imageUrl,
       items: formattedItems
     });
 
@@ -223,6 +326,27 @@ const SubmitCategoryForm = () => {
         </div>
         
         <div className="space-y-2">
+          <label htmlFor="categoryGroup" className="text-sm font-medium text-gray-700">
+            Category Group
+          </label>
+          <Select
+            value={formData.categoryGroup}
+            onValueChange={handleCategoryGroupChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a category group" />
+            </SelectTrigger>
+            <SelectContent>
+              {categoryGroups.map((group, index) => (
+                <SelectItem key={index} value={group.name}>
+                  {group.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
           <div className="flex justify-between items-center">
             <label htmlFor="description" className="text-sm font-medium text-gray-700">
               Category Description
@@ -238,6 +362,24 @@ const SubmitCategoryForm = () => {
             rows={3}
             required
           />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="categoryImage" className="text-sm font-medium text-gray-700">
+            Category Image
+          </label>
+          <div className="flex flex-col gap-4">
+            {formData.imageUrl && (
+              <div className="w-full h-48 rounded-md overflow-hidden bg-gray-100">
+                <img 
+                  src={formData.imageUrl} 
+                  alt="Category" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+            )}
+            <ImageUploader onImageUploaded={handleImageUpload} />
+          </div>
         </div>
       </div>
       
@@ -306,6 +448,24 @@ const SubmitCategoryForm = () => {
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <label htmlFor={`item-image-${index}`} className="text-sm font-medium text-gray-700">
+                Item Image
+              </label>
+              <div className="flex flex-col gap-4">
+                {item.imageUrl && (
+                  <div className="w-full h-32 rounded-md overflow-hidden bg-gray-100">
+                    <img 
+                      src={item.imageUrl} 
+                      alt={item.name || "Item"} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                )}
+                <ImageUploader onImageUploaded={(url) => handleItemImageUpload(index, url)} />
+              </div>
+            </div>
             
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
@@ -345,14 +505,16 @@ const SubmitCategoryForm = () => {
       
       <Button 
         type="submit" 
-        className="w-full bg-brand-purple hover:bg-brand-purple/90"
+        className="w-full bg-brand-green hover:bg-brand-green/90"
         disabled={isSubmitting}
       >
-        Submit Category for Review
+        {isEditing ? 'Update Category' : 'Submit Category for Review'}
       </Button>
       
       <p className="text-sm text-gray-500 text-center">
-        Your submission will be reviewed by our admins before being published.
+        {isEditing 
+          ? 'Your update will be reviewed by our admins before being published.' 
+          : 'Your submission will be reviewed by our admins before being published.'}
       </p>
     </form>
   );
