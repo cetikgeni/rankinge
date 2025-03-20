@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { getAllCategoryIcons } from '@/lib/category-icons';
@@ -85,6 +86,28 @@ export const CategoryGroup = ({ title, categoryGroup, showImages = false, limit 
         </div>
       </div>
     </section>
+  );
+};
+
+// Create and export the AdCard component for CategoryDetails.tsx
+export const AdCard = ({ title, description, imageUrl, link }) => {
+  return (
+    <div className="rounded-lg border border-gray-200 overflow-hidden">
+      <div className="h-40 overflow-hidden">
+        <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
+      </div>
+      <div className="p-4">
+        <h3 className="font-bold text-lg mb-2">{title}</h3>
+        <p className="text-gray-600 text-sm mb-4">{description}</p>
+        <Link 
+          to={link}
+          className="text-brand-purple hover:text-brand-purple/80 flex items-center text-sm font-medium"
+        >
+          Learn more
+          <ArrowRight className="ml-1 h-4 w-4" />
+        </Link>
+      </div>
+    </div>
   );
 };
 
