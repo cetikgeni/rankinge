@@ -2,34 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { getAllCategoryIcons } from '@/lib/category-icons';
-import { getApprovedCategories } from '@/lib/data';
 
-interface CategoryGroupProps {
-  title: string;
-  categoryGroup: string;
-  showImages?: boolean;
-  limit?: number;
-}
-
-// The CategoryGroup component shows categories by group name
-export const CategoryGroup = ({
-  title,
-  categoryGroup,
-  showImages = false,
-  limit = 4
-}: CategoryGroupProps) => {
-  const allCategoryIcons = getAllCategoryIcons();
-  const groupData = allCategoryIcons.find(group => group.name === categoryGroup);
-  if (!groupData) return null;
-  const categories = getApprovedCategories().filter(cat => {
-    // Match category to subcategory names in the group
-    return groupData.subcategories.some(sub => cat.name.toLowerCase().includes(sub.name.toLowerCase()) || sub.name.toLowerCase().includes(cat.name.toLowerCase()));
-  }).slice(0, limit);
-  return;
-};
-
-// Updated AdCard component to use link prop instead of targetUrl
 export const AdCard = ({
   title,
   description,
@@ -56,4 +29,4 @@ export const AdCard = ({
     </div>;
 };
 
-export default CategoryGroup;
+export default AdCard;

@@ -65,7 +65,6 @@ const CategoryDetails = () => {
     description: "Ultra-comfortable design with advanced features. Limited time offer.",
     imageUrl: category?.items[0]?.imageUrl || "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=2560&auto=format&fit=crop",
     link: "https://example.com/premium-product",
-    category: category?.name || "Products"
   };
   
   if (!category) {
@@ -163,7 +162,6 @@ const CategoryDetails = () => {
                               description={sponsoredProduct.description}
                               imageUrl={sponsoredProduct.imageUrl}
                               link={sponsoredProduct.link}
-                              category={sponsoredProduct.category}
                             />
                           </div>
                         </div>
