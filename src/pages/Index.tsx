@@ -7,7 +7,7 @@ import CategoryCard from '@/components/CategoryCard';
 import { getApprovedCategories } from '@/lib/data';
 import { getAllCategoryIcons } from '@/lib/category-icons';
 import CategorySearch from '@/components/CategorySearch';
-import CategoryGroup from '@/components/SponsoredSection';
+import CategoryGroup from '@/components/CategoryGroup';
 import LimitedTimeContest from '@/components/LimitedTimeContest';
 import React from 'react';
 
