@@ -10,25 +10,18 @@ import CategorySearch from '@/components/CategorySearch';
 import CategoryGroup from '@/components/CategoryGroup';
 import LimitedTimeContest from '@/components/LimitedTimeContest';
 import React from 'react';
-
 const Index = () => {
   // Get categories to display
   const allCategories = getApprovedCategories();
   const featuredCategories = allCategories.slice(0, 8);
-  
+
   // Get trending categories (sorting by total votes across all items)
-  const trendingCategories = [...allCategories]
-    .map(cat => ({
-      ...cat,
-      totalVotes: cat.items.reduce((sum, item) => sum + item.voteCount, 0)
-    }))
-    .sort((a, b) => b.totalVotes - a.totalVotes)
-    .slice(0, 4);
-  
+  const trendingCategories = [...allCategories].map(cat => ({
+    ...cat,
+    totalVotes: cat.items.reduce((sum, item) => sum + item.voteCount, 0)
+  })).sort((a, b) => b.totalVotes - a.totalVotes).slice(0, 4);
   const allCategoryIcons = getAllCategoryIcons();
-  
-  return (
-    <div className="min-h-screen flex flex-col">
+  return <div className="min-h-screen flex flex-col">
       <Navbar />
       
       {/* Hero Section */}
@@ -59,44 +52,20 @@ const Index = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900">Popular Categories</h2>
-            <Link 
-              to="/categories" 
-              className="text-brand-green hover:text-brand-green/80 flex items-center text-sm font-medium"
-            >
+            <Link to="/categories" className="text-brand-green hover:text-brand-green/80 flex items-center text-sm font-medium">
               View all categories
               <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredCategories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
-            ))}
+            {featuredCategories.map(category => <CategoryCard key={category.id} category={category} />)}
           </div>
         </div>
       </section>
       
       {/* NEW SECTION: Trending Categories */}
-      <section className="py-16 px-4 bg-gradient-to-br from-brand-green/5 to-brand-darkgreen/5">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Trending Categories</h2>
-            <Link 
-              to="/categories?sort=trending" 
-              className="text-brand-green hover:text-brand-green/80 flex items-center text-sm font-medium"
-            >
-              See all trending
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {trendingCategories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
-            ))}
-          </div>
-        </div>
-      </section>
+      
       
       {/* Limited Time Contest Section - MOVED DOWN below Popular Categories */}
       <LimitedTimeContest />
@@ -117,37 +86,29 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {allCategoryIcons.map((categoryGroup) => (
-              <div key={categoryGroup.name} className="mb-8">
+            {allCategoryIcons.map(categoryGroup => <div key={categoryGroup.name} className="mb-8">
                 <h3 className="text-lg font-bold mb-4 text-gray-800 flex items-center">
-                  {React.createElement(categoryGroup.icon, { className: "mr-2 h-5 w-5 text-brand-green" })}
+                  {React.createElement(categoryGroup.icon, {
+                className: "mr-2 h-5 w-5 text-brand-green"
+              })}
                   {categoryGroup.name}
                 </h3>
                 <ul className="space-y-2">
-                  {categoryGroup.subcategories.slice(0, 6).map((subCategory) => (
-                    <li key={subCategory.name}>
-                      <Link 
-                        to={`/categories?filter=${subCategory.name.toLowerCase()}`}
-                        className="text-gray-600 hover:text-brand-green transition-colors flex items-center text-sm"
-                      >
-                        {React.createElement(subCategory.icon, { className: "mr-2 h-4 w-4 text-gray-400" })}
+                  {categoryGroup.subcategories.slice(0, 6).map(subCategory => <li key={subCategory.name}>
+                      <Link to={`/categories?filter=${subCategory.name.toLowerCase()}`} className="text-gray-600 hover:text-brand-green transition-colors flex items-center text-sm">
+                        {React.createElement(subCategory.icon, {
+                    className: "mr-2 h-4 w-4 text-gray-400"
+                  })}
                         {subCategory.name}
                       </Link>
-                    </li>
-                  ))}
-                  {categoryGroup.subcategories.length > 6 && (
-                    <li className="pt-1">
-                      <Link 
-                        to={`/categories?group=${categoryGroup.name.toLowerCase()}`}
-                        className="text-brand-green hover:text-brand-green/80 text-sm font-medium"
-                      >
+                    </li>)}
+                  {categoryGroup.subcategories.length > 6 && <li className="pt-1">
+                      <Link to={`/categories?group=${categoryGroup.name.toLowerCase()}`} className="text-brand-green hover:text-brand-green/80 text-sm font-medium">
                         + {categoryGroup.subcategories.length - 6} more
                       </Link>
-                    </li>
-                  )}
+                    </li>}
                 </ul>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </section>
@@ -224,8 +185,6 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
