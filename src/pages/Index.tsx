@@ -8,7 +8,8 @@ import { getApprovedCategories } from '@/lib/data';
 import { getAllCategoryIcons } from '@/lib/category-icons';
 import CategorySearch from '@/components/CategorySearch';
 import CategoryGroup from '@/components/CategoryGroup';
-import LimitedTimeContest from '@/components/LimitedTimeContest';
+// LimitedTimeContest disabled for MVP
+// import LimitedTimeContest from '@/components/LimitedTimeContest';
 import React from 'react';
 const Index = () => {
   // Get categories to display
@@ -64,11 +65,8 @@ const Index = () => {
         </div>
       </section>
       
-      {/* NEW SECTION: Trending Categories */}
-      
-      
-      {/* Limited Time Contest Section - MOVED DOWN below Popular Categories */}
-      <LimitedTimeContest />
+      {/* Contest section disabled for MVP */}
+      {/* <LimitedTimeContest /> */}
       
       {/* Three additional category rows with icons (no images) */}
       <CategoryGroup title="Food & Beverages" categoryGroup="Food & Beverages" showImages={false} limit={4} />

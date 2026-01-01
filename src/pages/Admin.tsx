@@ -1,12 +1,10 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock, Shield, XCircle, Percent, Hash } from 'lucide-react';
+import { CheckCircle, Clock, Shield, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
@@ -15,8 +13,7 @@ import {
   getPendingCategories, 
   getApprovedCategories,
   approveCategory,
-  rejectCategory,
-  updateCategorySettings
+  rejectCategory
 } from '@/lib/data';
 import { Category } from '@/lib/types';
 
@@ -55,16 +52,6 @@ const Admin = () => {
       setPendingCategories(getPendingCategories());
     } else {
       toast.error('Failed to reject category');
-    }
-  };
-  
-  const handleToggleVoteDisplay = (categoryId: string, displayMode: 'count' | 'percentage') => {
-    if (updateCategorySettings(categoryId, { displayVoteAs: displayMode })) {
-      toast.success(`Display format updated to ${displayMode === 'count' ? 'vote count' : 'percentage'}`);
-      // Update state to reflect changes
-      setApprovedCategories(getApprovedCategories());
-    } else {
-      toast.error('Failed to update display format');
     }
   };
   
@@ -188,7 +175,7 @@ const Admin = () => {
             </TabsContent>
             
             <TabsContent value="approved">
-              <h2 className="text-2xl font-bold mb-6">Manage Approved Categories</h2>
+              <h2 className="text-2xl font-bold mb-6">Approved Categories</h2>
               
               {approvedCategories.length === 0 ? (
                 <Card>
@@ -198,78 +185,78 @@ const Admin = () => {
                 </Card>
               ) : (
                 <div className="space-y-6">
-                  {approvedCategories.map((category) => (
-                    <Card key={category.id}>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle>{category.name}</CardTitle>
-                          <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            <span>Approved</span>
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent>
-                        <p className="text-gray-600 mb-4">{category.description}</p>
-                        
-                        <div className="bg-gray-50 p-4 rounded-md mb-4">
-                          <h4 className="text-sm font-medium text-gray-700 mb-3">Display Settings</h4>
-                          
+                  {approvedCategories.map((category) => {
+                    const totalVotes = category.items.reduce((sum, i) => sum + i.voteCount, 0);
+                    const isEarlyRanking = totalVotes < 30;
+                    
+                    return (
+                      <Card key={category.id}>
+                        <CardHeader>
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                              <Button 
-                                variant={category.settings.displayVoteAs === 'count' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => handleToggleVoteDisplay(category.id, 'count')}
-                                className={category.settings.displayVoteAs === 'count' ? 'bg-brand-purple' : ''}
-                              >
-                                <Hash className="h-4 w-4 mr-2" />
-                                Vote Count
-                              </Button>
-                              
-                              <Button 
-                                variant={category.settings.displayVoteAs === 'percentage' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => handleToggleVoteDisplay(category.id, 'percentage')}
-                                className={category.settings.displayVoteAs === 'percentage' ? 'bg-brand-purple' : ''}
-                              >
-                                <Percent className="h-4 w-4 mr-2" />
-                                Percentage
-                              </Button>
-                            </div>
-                            
-                            <div className="text-sm text-gray-500">
-                              Current: {category.settings.displayVoteAs === 'percentage' ? 'Percentage' : 'Vote Count'}
+                            <CardTitle>{category.name}</CardTitle>
+                            <div className="flex items-center gap-2">
+                              {isEarlyRanking && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                  Peringkat Awal
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                <span>Approved</span>
+                              </Badge>
                             </div>
                           </div>
-                        </div>
+                        </CardHeader>
                         
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">
-                            Top Items ({Math.min(3, category.items.length)})
-                          </h4>
-                          <ul className="space-y-2">
-                            {[...category.items]
-                              .sort((a, b) => b.voteCount - a.voteCount)
-                              .slice(0, 3)
-                              .map((item, index) => (
-                                <li key={item.id} className="text-sm flex justify-between">
-                                  <div>
-                                    <span className="font-medium">#{index + 1} {item.name}</span>
-                                  </div>
-                                  <Badge variant="outline" className="ml-2 bg-gray-50">
-                                    {category.settings.displayVoteAs === 'percentage' 
-                                      ? `${Math.round((item.voteCount / category.items.reduce((sum, i) => sum + i.voteCount, 0)) * 100)}%` 
-                                      : `${item.voteCount} votes`}
-                                  </Badge>
-                                </li>
-                              ))}
-                          </ul>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        <CardContent>
+                          <p className="text-gray-600 mb-4">{category.description}</p>
+                          
+                          <div className="bg-gray-50 p-4 rounded-md mb-4">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">
+                              Stats
+                            </h4>
+                            <div className="text-sm text-gray-600">
+                              <span>Total Votes: {totalVotes}</span>
+                              {isEarlyRanking && (
+                                <span className="ml-4 text-blue-600">
+                                  (Showing percentage only until 30+ votes)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gray-50 p-4 rounded-md">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">
+                              Top Items ({Math.min(3, category.items.length)})
+                            </h4>
+                            <ul className="space-y-2">
+                              {[...category.items]
+                                .sort((a, b) => b.voteCount - a.voteCount)
+                                .slice(0, 3)
+                                .map((item, index) => {
+                                  const percentage = totalVotes > 0 
+                                    ? Math.round((item.voteCount / totalVotes) * 100) 
+                                    : 0;
+                                  
+                                  return (
+                                    <li key={item.id} className="text-sm flex justify-between">
+                                      <div>
+                                        <span className="font-medium">#{index + 1} {item.name}</span>
+                                      </div>
+                                      <Badge variant="outline" className="ml-2 bg-gray-50">
+                                        {isEarlyRanking 
+                                          ? `${percentage}%`
+                                          : `${percentage}% (${item.voteCount} votes)`}
+                                      </Badge>
+                                    </li>
+                                  );
+                                })}
+                            </ul>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </TabsContent>

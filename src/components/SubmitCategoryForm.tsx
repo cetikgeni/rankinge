@@ -16,8 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CategorySubmission } from '@/lib/types';
 import { submitCategory, currentUser, getCategoryById, getAllCategories } from '@/lib/data';
 import { getAllCategoryIcons } from '@/lib/category-icons';
-import AIAssistant from './AIAssistant';
+// AI Assistant disabled for MVP
+// import AIAssistant from './AIAssistant';
 import ImageUploader from './ImageUploader';
+
+// Feature flag for AI Assistant (disabled for MVP)
+const ENABLE_AI_ASSISTANT = false;
 
 // Let's add the missing updateCategory function to data.ts
 // We'll then modify the SubmitCategoryForm to use this function
@@ -315,8 +319,10 @@ const SubmitCategoryForm = () => {
     toast.success('Complete category generated!');
   };
 
-  return (
+   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* AI Assistant section disabled for MVP */}
+      {/* 
       <div className="mb-6">
         <div className="bg-brand-purple/5 p-4 rounded-lg border border-brand-purple/20 mb-6">
           <h3 className="text-lg font-medium mb-3 text-brand-purple">Quick Generate Complete Category</h3>
@@ -330,12 +336,10 @@ const SubmitCategoryForm = () => {
           />
         </div>
       </div>
+      */}
 
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Category Details</h3>
-          <AIAssistant onSuggestion={handleAICategoryAssist} fieldType="category" />
-        </div>
+        <h3 className="text-lg font-medium">Category Details</h3>
         
         <div className="space-y-2">
           <label htmlFor="name" className="text-sm font-medium text-gray-700">
@@ -373,12 +377,9 @@ const SubmitCategoryForm = () => {
         </div>
         
         <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <label htmlFor="description" className="text-sm font-medium text-gray-700">
-              Category Description
-            </label>
-            <AIAssistant onSuggestion={handleAIDescriptionAssist} fieldType="description" currentValue={formData.description} />
-          </div>
+          <label htmlFor="description" className="text-sm font-medium text-gray-700">
+            Category Description
+          </label>
           <Textarea
             id="description"
             name="description"
@@ -428,22 +429,15 @@ const SubmitCategoryForm = () => {
           <div key={index} className="p-4 bg-gray-50 rounded-md space-y-3">
             <div className="flex justify-between items-center">
               <h4 className="text-sm font-medium text-gray-700">Item #{index + 1}</h4>
-              <div className="flex items-center gap-2">
-                <AIAssistant 
-                  onSuggestion={(suggestion) => handleAIItemAssist(index, suggestion)} 
-                  fieldType="item" 
-                  currentValue={item.description}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeItem(index)}
-                  className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeItem(index)}
+                className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
             
             <div className="space-y-2">

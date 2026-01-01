@@ -5,30 +5,33 @@ import { Badge } from '@/components/ui/badge';
 import VoteButton from './VoteButton';
 import { currentUser } from '@/lib/data';
 import ItemIcon from './ItemIcon';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ItemCardProps {
-  item: Item & { productUrl?: string };
+  item: Item & { productUrl?: string; affiliateUrl?: string };
   category: Category;
   rank: number;
   onVote: (itemId: string) => void;
   userVotedItemId: string | undefined;
+  totalVotesInCategory: number;
 }
 
-const ItemCard = ({ item, category, rank, onVote, userVotedItemId }: ItemCardProps) => {
+const ItemCard = ({ item, category, rank, onVote, userVotedItemId, totalVotesInCategory }: ItemCardProps) => {
   const isVoted = userVotedItemId === item.id;
   
   // For demo purposes, generate a product URL if none exists
   const productUrl = item.productUrl || `https://example.com/product/${item.name.toLowerCase().replace(/\s+/g, '-')}`;
   
-  // Calculate total votes in category for percentage
-  const totalVotes = category.items.reduce((sum, item) => sum + item.voteCount, 0);
+  // Dynamic vote display logic
+  // If total votes < 30: show percentage only + "Early Ranking" label
+  // If total votes >= 30: show both percentage and vote count
+  const isEarlyRanking = totalVotesInCategory < 30;
+  const percentage = totalVotesInCategory > 0 ? Math.round((item.voteCount / totalVotesInCategory) * 100) : 0;
   
-  // Format vote display based on category settings
-  const voteDisplay = category.settings.displayVoteAs === 'percentage' 
-    ? `${totalVotes > 0 ? Math.round((item.voteCount / totalVotes) * 100) : 0}%`
-    : `${item.voteCount} votes`;
+  const voteDisplay = isEarlyRanking 
+    ? `${percentage}%`
+    : `${percentage}% (${item.voteCount} votes)`;
   
   return (
     <Card className={`overflow-hidden transition-all ${isVoted ? 'ring-2 ring-brand-purple/20' : ''}`}>
@@ -39,7 +42,7 @@ const ItemCard = ({ item, category, rank, onVote, userVotedItemId }: ItemCardPro
             alt={item.name} 
             className="w-full h-full object-cover"
           />
-          <div className="absolute top-2 left-2">
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
             <Badge 
               variant="secondary" 
               className={`text-xs font-semibold ${
@@ -54,6 +57,11 @@ const ItemCard = ({ item, category, rank, onVote, userVotedItemId }: ItemCardPro
             >
               #{rank}
             </Badge>
+            {isEarlyRanking && (
+              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                Peringkat Awal
+              </Badge>
+            )}
           </div>
         </div>
         
@@ -70,8 +78,8 @@ const ItemCard = ({ item, category, rank, onVote, userVotedItemId }: ItemCardPro
             </div>
             <p className="text-gray-600 text-sm mb-4">{item.description}</p>
             
-            {productUrl && (
-              <div className="mb-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {productUrl && (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -81,8 +89,19 @@ const ItemCard = ({ item, category, rank, onVote, userVotedItemId }: ItemCardPro
                   Visit Website
                   <ExternalLink className="ml-1.5 h-3 w-3" />
                 </Button>
-              </div>
-            )}
+              )}
+              
+              {item.affiliateUrl && (
+                <Button 
+                  size="sm" 
+                  className="text-xs h-8 bg-brand-green hover:bg-brand-green/90"
+                  onClick={() => window.open(item.affiliateUrl, '_blank', 'noopener,noreferrer')}
+                >
+                  <ShoppingCart className="mr-1.5 h-3 w-3" />
+                  Beli / Buy
+                </Button>
+              )}
+            </div>
           </div>
           
           <div className="mt-4">
