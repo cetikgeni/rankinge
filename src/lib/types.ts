@@ -14,6 +14,7 @@ export interface Item {
   imageUrl: string;
   voteCount: number;
   productUrl?: string;
+  affiliateUrl?: string;
 }
 
 export interface CategorySettings {

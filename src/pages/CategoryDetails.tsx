@@ -6,7 +6,6 @@ import Navbar from '@/components/Navbar';
 import ItemCard from '@/components/ItemCard';
 import { getCategoryById, voteForItem, currentUser } from '@/lib/data';
 import { Item, Category } from '@/lib/types';
-import { AdCard } from '@/components/SponsoredSection';
 import AdFooter from '@/components/AdFooter';
 import SidebarAd from '@/components/SidebarAd';
 
@@ -60,12 +59,6 @@ const CategoryDetails = () => {
     }
   };
   
-  const sponsoredProduct = {
-    title: "Premium " + (category?.name || "Product"),
-    description: "Ultra-comfortable design with advanced features. Limited time offer.",
-    imageUrl: category?.items[0]?.imageUrl || "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=2560&auto=format&fit=crop",
-    link: "https://example.com/premium-product",
-  };
   
   if (!category) {
     return (
@@ -128,10 +121,10 @@ const CategoryDetails = () => {
               <div className="bg-white rounded-md p-4 mb-8 shadow-sm">
                 <h2 className="text-lg font-medium mb-2">Voting Rules</h2>
                 <ul className="text-sm text-gray-700 space-y-1">
-                  <li>• You can vote for one item in this category.</li>
-                  <li>• You can change your vote at any time.</li>
-                  <li>• Results are updated in real-time.</li>
-                  <li>• {category.settings.displayVoteAs === 'percentage' ? 'Percentages show the proportion of total votes.' : 'Vote counts show the total number of votes.'}</li>
+                  <li>• You can vote for one item in this category. / Anda dapat memilih satu item dalam kategori ini.</li>
+                  <li>• You can change your vote at any time. / Anda dapat mengubah pilihan kapan saja.</li>
+                  <li>• Results are updated in real-time. / Hasil diperbarui secara real-time.</li>
+                  <li>• Rankings are based on user votes only. / Peringkat hanya berdasarkan suara pengguna.</li>
                 </ul>
               </div>
               
@@ -139,46 +132,24 @@ const CategoryDetails = () => {
                 <h2 className="text-2xl font-bold mb-6">Rankings</h2>
                 
                 <div className="space-y-6">
-                  {items.map((item, index) => {
-                    if (index === 2) {
-                      return (
-                        <div key={`sponsored-${item.id}`} className="space-y-6">
-                          <div className="relative">
-                            <ItemCard 
-                              item={item}
-                              category={category}
-                              rank={index + 1}
-                              onVote={handleVote}
-                              userVotedItemId={userVotedItemId}
-                            />
-                          </div>
-                          
-                          <div className="relative rounded-lg overflow-hidden border border-brand-purple/20 bg-gradient-to-r from-brand-purple/5 to-brand-teal/5">
-                            <div className="absolute top-0 left-0 bg-brand-purple text-white text-xs font-bold py-1 px-3 rounded-br-lg">
-                              Sponsored
-                            </div>
-                            <AdCard 
-                              title={sponsoredProduct.title}
-                              description={sponsoredProduct.description}
-                              imageUrl={sponsoredProduct.imageUrl}
-                              link={sponsoredProduct.link}
-                            />
-                          </div>
-                        </div>
-                      );
-                    }
-                    
-                    return (
-                      <ItemCard 
-                        key={item.id}
-                        item={item}
-                        category={category}
-                        rank={index + 1}
-                        onVote={handleVote}
-                        userVotedItemId={userVotedItemId}
-                      />
-                    );
-                  })}
+                  {items.map((item, index) => (
+                    <ItemCard 
+                      key={item.id}
+                      item={item}
+                      category={category}
+                      rank={index + 1}
+                      onVote={handleVote}
+                      userVotedItemId={userVotedItemId}
+                      totalVotesInCategory={totalVotes}
+                    />
+                  ))}
+                </div>
+                
+                {/* Affiliate Disclosure */}
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 italic">
+                    Beberapa tautan adalah tautan afiliasi. / Some links are affiliate links.
+                  </p>
                 </div>
               </div>
             </div>
@@ -208,7 +179,7 @@ const CategoryDetails = () => {
                   <div>
                     <span className="text-gray-500">Display Format:</span>
                     <span className="ml-2 font-medium">
-                      {category.settings.displayVoteAs === 'percentage' ? 'Percentage' : 'Vote Count'}
+                      {totalVotes < 30 ? 'Peringkat Awal (Percentage only)' : 'Percentage + Vote Count'}
                     </span>
                   </div>
                 </div>
