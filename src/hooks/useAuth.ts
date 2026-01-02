@@ -18,17 +18,23 @@ export const useAuth = () => {
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!isMounted) return;
+      
       if (session?.user) {
-        checkAdminRole(session.user.id).then((isAdmin) => {
+        const isAdmin = await checkAdminRole(session.user.id);
+        if (isMounted) {
           setAuthState({
             user: session.user,
             session,
             isLoading: false,
             isAdmin,
           });
-        });
+        }
       } else {
         setAuthState({
           user: null,
@@ -37,11 +43,15 @@ export const useAuth = () => {
           isAdmin: false,
         });
       }
-    });
+    };
+
+    initSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!isMounted) return;
+        
         setAuthState(prev => ({
           ...prev,
           user: session?.user ?? null,
@@ -51,13 +61,15 @@ export const useAuth = () => {
         
         // Defer admin check with setTimeout to prevent deadlock
         if (session?.user) {
-          setTimeout(() => {
-            checkAdminRole(session.user.id).then((isAdmin) => {
+          setTimeout(async () => {
+            if (!isMounted) return;
+            const isAdmin = await checkAdminRole(session.user.id);
+            if (isMounted) {
               setAuthState(prev => ({
                 ...prev,
                 isAdmin,
               }));
-            });
+            }
           }, 0);
         } else {
           setAuthState(prev => ({
@@ -68,7 +80,10 @@ export const useAuth = () => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return authState;

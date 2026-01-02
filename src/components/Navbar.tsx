@@ -10,15 +10,22 @@ import {
   User,
   X,
   LayoutDashboard,
-  FileText
+  FileText,
+  FolderOpen,
+  Send,
+  Shield,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { useAuth, signOut } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -30,68 +37,82 @@ const Navbar = () => {
   };
 
   const isHomePage = location.pathname === '/';
-  const isAltHomePage = location.pathname === '/';
+  const isAltHomePage = location.pathname === '/alt';
 
   return (
-    <nav className="bg-white py-4 shadow-sm sticky top-0 z-10">
+    <nav className="bg-background py-4 shadow-sm sticky top-0 z-10 border-b border-border">
       <div className="container px-4 mx-auto flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
-          <BarChart className="h-6 w-6 text-brand-green" />
-          <span className="text-xl font-bold bg-gradient-to-r from-brand-green to-brand-darkgreen bg-clip-text text-transparent">
+          <BarChart className="h-6 w-6 text-primary" />
+          <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             Rankinge
           </span>
         </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex md:items-center md:space-x-4">
-          <Link to="/categories" className="text-gray-700 hover:text-brand-green transition-colors">
+          <Link to="/categories" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5">
+            <FolderOpen className="h-4 w-4" />
             Categories
           </Link>
-          <Link to="/blog" className="text-gray-700 hover:text-brand-green transition-colors flex items-center gap-1">
+          <Link to="/blog" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5">
             <FileText className="h-4 w-4" />
             Blog
           </Link>
-          <Link to="/submit" className="text-gray-700 hover:text-brand-green transition-colors">
+          <Link to="/submit" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5">
+            <Send className="h-4 w-4" />
             Submit
           </Link>
           
           {isAdmin && (
-            <Link to="/admin" className="text-gray-700 hover:text-brand-green transition-colors">
+            <Link to="/admin" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5">
+              <Shield className="h-4 w-4" />
               Admin
             </Link>
           )}
 
           {/* Home version switcher */}
-          {isHomePage ? (
+          {isHomePage && (
             <Link 
               to="/alt" 
-              className="text-gray-700 hover:text-brand-green transition-colors flex items-center gap-1"
+              className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5"
             >
               <LayoutDashboard className="h-4 w-4" />
               <span>Alt Home</span>
             </Link>
-          ) : isAltHomePage ? (
+          )}
+          {isAltHomePage && (
             <Link 
               to="/" 
-              className="text-gray-700 hover:text-brand-green transition-colors flex items-center gap-1"
+              className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5"
             >
               <LayoutDashboard className="h-4 w-4" />
               <span>Classic Home</span>
             </Link>
-          ) : null}
+          )}
 
-          <div className="w-px h-6 bg-gray-300 mx-2" />
+          <div className="w-px h-6 bg-border mx-2" />
+
+          {/* Dark mode toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="text-foreground/80 hover:text-primary"
+          >
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
 
           {user ? (
             <div className="flex items-center space-x-3">
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-foreground">
                 <span className="font-medium">{user.email?.split('@')[0]}</span>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="flex items-center gap-1 text-gray-700 hover:text-red-600" 
+                className="flex items-center gap-1 text-foreground/80 hover:text-destructive" 
                 onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4" />
@@ -106,7 +127,7 @@ const Navbar = () => {
                   <span>Login</span>
                 </Link>
               </Button>
-              <Button asChild variant="default" size="sm" className="bg-brand-green hover:bg-brand-green/90">
+              <Button asChild variant="default" size="sm">
                 <Link to="/register" className="flex items-center gap-1">
                   <UserPlus className="h-4 w-4" />
                   <span>Register</span>
@@ -119,7 +140,7 @@ const Navbar = () => {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="md:hidden text-gray-700 focus:outline-none"
+          className="md:hidden text-foreground focus:outline-none"
         >
           {isMenuOpen ? (
             <X className="h-6 w-6" />
@@ -131,73 +152,87 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white shadow-lg absolute top-16 inset-x-0 z-20 py-2">
+        <div className="md:hidden bg-background shadow-lg absolute top-16 inset-x-0 z-20 py-2 border-b border-border">
           <div className="container px-4 mx-auto flex flex-col space-y-3">
             <Link 
               to="/categories" 
-              className="text-gray-700 py-2 hover:text-brand-green"
+              className="text-foreground/80 py-2 hover:text-primary flex items-center gap-2"
               onClick={() => setIsMenuOpen(false)}
             >
+              <FolderOpen className="h-4 w-4" />
               Categories
             </Link>
             <Link 
               to="/blog" 
-              className="text-gray-700 py-2 hover:text-brand-green flex items-center gap-1"
+              className="text-foreground/80 py-2 hover:text-primary flex items-center gap-2"
               onClick={() => setIsMenuOpen(false)}
             >
-              <FileText className="h-4 w-4 mr-1" />
+              <FileText className="h-4 w-4" />
               Blog
             </Link>
             <Link 
               to="/submit" 
-              className="text-gray-700 py-2 hover:text-brand-green"
+              className="text-foreground/80 py-2 hover:text-primary flex items-center gap-2"
               onClick={() => setIsMenuOpen(false)}
             >
+              <Send className="h-4 w-4" />
               Submit
             </Link>
             
             {isAdmin && (
               <Link 
                 to="/admin" 
-                className="text-gray-700 py-2 hover:text-brand-green"
+                className="text-foreground/80 py-2 hover:text-primary flex items-center gap-2"
                 onClick={() => setIsMenuOpen(false)}
               >
+                <Shield className="h-4 w-4" />
                 Admin
               </Link>
             )}
 
             {/* Home version switcher for mobile */}
-            {isHomePage ? (
+            {isHomePage && (
               <Link 
                 to="/alt" 
-                className="text-gray-700 py-2 hover:text-brand-green flex items-center gap-1"
+                className="text-foreground/80 py-2 hover:text-primary flex items-center gap-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <LayoutDashboard className="h-4 w-4 mr-1" />
+                <LayoutDashboard className="h-4 w-4" />
                 <span>Alt Home</span>
               </Link>
-            ) : isAltHomePage ? (
+            )}
+            {isAltHomePage && (
               <Link 
                 to="/" 
-                className="text-gray-700 py-2 hover:text-brand-green flex items-center gap-1"
+                className="text-foreground/80 py-2 hover:text-primary flex items-center gap-2"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <LayoutDashboard className="h-4 w-4 mr-1" />
+                <LayoutDashboard className="h-4 w-4" />
                 <span>Classic Home</span>
               </Link>
-            ) : null}
+            )}
 
-            <hr className="border-gray-200" />
+            <hr className="border-border" />
+
+            {/* Dark mode toggle for mobile */}
+            <Button
+              variant="ghost"
+              className="justify-start px-0 text-foreground/80 hover:text-primary"
+              onClick={toggleTheme}
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+              <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+            </Button>
 
             {user ? (
               <>
                 <div className="flex items-center py-2">
-                  <User className="h-4 w-4 mr-2 text-gray-700" />
-                  <span className="text-sm font-medium text-gray-700">{user.email?.split('@')[0]}</span>
+                  <User className="h-4 w-4 mr-2 text-foreground" />
+                  <span className="text-sm font-medium text-foreground">{user.email?.split('@')[0]}</span>
                 </div>
                 <Button 
                   variant="ghost" 
-                  className="justify-start px-0 text-gray-700 hover:text-red-600" 
+                  className="justify-start px-0 text-foreground/80 hover:text-destructive" 
                   onClick={() => {
                     handleLogout();
                     setIsMenuOpen(false);
@@ -215,7 +250,7 @@ const Navbar = () => {
                   className="justify-start px-0"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <Link to="/login" className="text-gray-700">
+                  <Link to="/login" className="text-foreground/80">
                     <LogIn className="h-4 w-4 mr-2" />
                     <span>Login</span>
                   </Link>
