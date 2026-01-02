@@ -2,26 +2,36 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import SubmitCategoryForm from '@/components/SubmitCategoryForm';
-import { currentUser } from '@/lib/data';
+import { useAuth } from '@/hooks/useAuth';
 import SidebarAd from '@/components/SidebarAd';
 import AdFooter from '@/components/AdFooter';
 
 const Submit = () => {
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
   
   useEffect(() => {
-    if (!currentUser) {
+    if (!isLoading && !user) {
       toast.error('You must be logged in to submit a new category');
       navigate('/login');
     }
-  }, [navigate]);
+  }, [isLoading, user, navigate]);
   
-  if (!currentUser) {
-    return null;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
   
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
