@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, FileText, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { AIGenerateButton } from '@/components/AIGenerateButton';
+import { useAIGenerate } from '@/hooks/useAIGenerate';
 
 interface BlogPost {
   id: string;
@@ -55,6 +57,37 @@ const BlogManagement = () => {
     cover_image_url: '',
     is_published: false,
   });
+  
+  const { generate, isGenerating } = useAIGenerate();
+  const [generatingField, setGeneratingField] = useState<string | null>(null);
+
+  const handleGenerateContent = async () => {
+    if (!formData.title.trim()) {
+      toast.error('Please enter a title first');
+      return;
+    }
+    setGeneratingField('content');
+    const result = await generate('blog_content', formData.title);
+    if (result) {
+      setFormData(prev => ({ ...prev, content: result as string }));
+      toast.success('Content generated!');
+    }
+    setGeneratingField(null);
+  };
+
+  const handleGenerateExcerpt = async () => {
+    if (!formData.content.trim()) {
+      toast.error('Please add content first');
+      return;
+    }
+    setGeneratingField('excerpt');
+    const result = await generate('blog_excerpt', formData.content, { title: formData.title });
+    if (result) {
+      setFormData(prev => ({ ...prev, excerpt: result as string }));
+      toast.success('Excerpt generated!');
+    }
+    setGeneratingField(null);
+  };
 
   const fetchPosts = async () => {
     setIsLoading(true);
@@ -270,7 +303,14 @@ const BlogManagement = () => {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="excerpt">Ringkasan / Excerpt</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="excerpt">Ringkasan / Excerpt</Label>
+                  <AIGenerateButton
+                    onClick={handleGenerateExcerpt}
+                    isGenerating={generatingField === 'excerpt'}
+                    tooltip="Generate excerpt with AI"
+                  />
+                </div>
                 <Textarea
                   id="excerpt"
                   value={formData.excerpt}
@@ -280,7 +320,14 @@ const BlogManagement = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="content">Konten / Content *</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="content">Konten / Content *</Label>
+                  <AIGenerateButton
+                    onClick={handleGenerateContent}
+                    isGenerating={generatingField === 'content'}
+                    tooltip="Generate content with AI"
+                  />
+                </div>
                 <Textarea
                   id="content"
                   value={formData.content}
