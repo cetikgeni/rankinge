@@ -1,272 +1,168 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock, Shield, XCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Shield, FolderOpen, FileText, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
-import { 
-  currentUser, 
-  getPendingCategories, 
-  getApprovedCategories,
-  approveCategory,
-  rejectCategory
-} from '@/lib/data';
-import { Category } from '@/lib/types';
+import CategoryManagement from '@/components/admin/CategoryManagement';
+import BlogManagement from '@/components/admin/BlogManagement';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const Admin = () => {
   const navigate = useNavigate();
-  const [pendingCategories, setPendingCategories] = useState<Category[]>([]);
-  const [approvedCategories, setApprovedCategories] = useState<Category[]>([]);
-  
+  const { user, isLoading: authLoading, isAdmin } = useAuth();
+  const [stats, setStats] = useState({
+    totalCategories: 0,
+    pendingCategories: 0,
+    totalPosts: 0,
+    publishedPosts: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
   useEffect(() => {
-    if (!currentUser?.isAdmin) {
-      toast.error('You do not have admin permissions');
+    if (!authLoading && !isAdmin) {
+      toast.error('Anda tidak memiliki akses admin / You do not have admin access');
       navigate('/');
       return;
     }
+
+    if (isAdmin) {
+      fetchStats();
+    }
+  }, [authLoading, isAdmin, navigate]);
+
+  const fetchStats = async () => {
+    setStatsLoading(true);
     
-    // Fetch categories
-    setPendingCategories(getPendingCategories());
-    setApprovedCategories(getApprovedCategories());
-  }, [navigate]);
-  
-  const handleApprove = (categoryId: string) => {
-    if (approveCategory(categoryId)) {
-      toast.success('Category approved successfully');
-      // Update state
-      setPendingCategories(getPendingCategories());
-      setApprovedCategories(getApprovedCategories());
-    } else {
-      toast.error('Failed to approve category');
-    }
+    // Fetch category stats
+    const { data: categories } = await supabase
+      .from('categories')
+      .select('is_approved');
+    
+    // Fetch blog stats
+    const { data: posts } = await supabase
+      .from('blog_posts')
+      .select('is_published');
+
+    setStats({
+      totalCategories: categories?.length || 0,
+      pendingCategories: categories?.filter(c => !c.is_approved).length || 0,
+      totalPosts: posts?.length || 0,
+      publishedPosts: posts?.filter(p => p.is_published).length || 0,
+    });
+    setStatsLoading(false);
   };
-  
-  const handleReject = (categoryId: string) => {
-    if (rejectCategory(categoryId)) {
-      toast.success('Category rejected');
-      // Update state
-      setPendingCategories(getPendingCategories());
-    } else {
-      toast.error('Failed to reject category');
-    }
-  };
-  
-  if (!currentUser?.isAdmin) {
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
     return null;
   }
-  
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
       <main className="flex-grow py-10 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="flex items-center gap-3 mb-8">
-            <Shield className="h-6 w-6 text-brand-purple" />
+            <Shield className="h-6 w-6 text-primary" />
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Pending Categories</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Kategori
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-brand-purple">
-                  {pendingCategories.length}
+                <div className="text-2xl font-bold">
+                  {statsLoading ? '-' : stats.totalCategories}
                 </div>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Approved Categories</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Menunggu Persetujuan
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-green-600">
-                  {approvedCategories.length}
+                <div className="text-2xl font-bold text-amber-600">
+                  {statsLoading ? '-' : stats.pendingCategories}
                 </div>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Total Items</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Artikel
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-blue-600">
-                  {approvedCategories.reduce((acc, category) => acc + category.items.length, 0)}
+                <div className="text-2xl font-bold">
+                  {statsLoading ? '-' : stats.totalPosts}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Artikel Published
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {statsLoading ? '-' : stats.publishedPosts}
                 </div>
               </CardContent>
             </Card>
           </div>
           
-          <Tabs defaultValue="pending" className="mb-12">
-            <TabsList className="mb-6">
-              <TabsTrigger value="pending">Pending Approvals</TabsTrigger>
-              <TabsTrigger value="approved">Manage Approved Categories</TabsTrigger>
+          {/* Management Tabs */}
+          <Tabs defaultValue="categories" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsTrigger value="categories" className="flex items-center gap-2">
+                <FolderOpen className="h-4 w-4" />
+                Kategori
+              </TabsTrigger>
+              <TabsTrigger value="blog" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Blog
+              </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="pending">
-              <h2 className="text-2xl font-bold mb-6">Pending Approvals</h2>
-              
-              {pendingCategories.length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <p className="text-gray-600">No pending categories to review</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  {pendingCategories.map((category) => (
-                    <Card key={category.id}>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle>{category.name}</CardTitle>
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            <span>Pending</span>
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent>
-                        <p className="text-gray-600 mb-4">{category.description}</p>
-                        
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">Items ({category.items.length})</h4>
-                          <ul className="space-y-2">
-                            {category.items.map((item) => (
-                              <li key={item.id} className="text-sm">
-                                <span className="font-medium">{item.name}</span>
-                                <span className="text-gray-600"> - {item.description}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </CardContent>
-                      
-                      <CardFooter className="flex justify-end space-x-3">
-                        <Button 
-                          variant="outline" 
-                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          onClick={() => handleReject(category.id)}
-                        >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Reject
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700"  
-                          onClick={() => handleApprove(category.id)}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Approve
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              )}
+            <TabsContent value="categories">
+              <CategoryManagement />
             </TabsContent>
             
-            <TabsContent value="approved">
-              <h2 className="text-2xl font-bold mb-6">Approved Categories</h2>
-              
-              {approvedCategories.length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <p className="text-gray-600">No approved categories yet</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  {approvedCategories.map((category) => {
-                    const totalVotes = category.items.reduce((sum, i) => sum + i.voteCount, 0);
-                    const isEarlyRanking = totalVotes < 30;
-                    
-                    return (
-                      <Card key={category.id}>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle>{category.name}</CardTitle>
-                            <div className="flex items-center gap-2">
-                              {isEarlyRanking && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                                  Peringkat Awal
-                                </Badge>
-                              )}
-                              <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-1">
-                                <CheckCircle className="h-3 w-3" />
-                                <span>Approved</span>
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        
-                        <CardContent>
-                          <p className="text-gray-600 mb-4">{category.description}</p>
-                          
-                          <div className="bg-gray-50 p-4 rounded-md mb-4">
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">
-                              Stats
-                            </h4>
-                            <div className="text-sm text-gray-600">
-                              <span>Total Votes: {totalVotes}</span>
-                              {isEarlyRanking && (
-                                <span className="ml-4 text-blue-600">
-                                  (Showing percentage only until 30+ votes)
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="bg-gray-50 p-4 rounded-md">
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">
-                              Top Items ({Math.min(3, category.items.length)})
-                            </h4>
-                            <ul className="space-y-2">
-                              {[...category.items]
-                                .sort((a, b) => b.voteCount - a.voteCount)
-                                .slice(0, 3)
-                                .map((item, index) => {
-                                  const percentage = totalVotes > 0 
-                                    ? Math.round((item.voteCount / totalVotes) * 100) 
-                                    : 0;
-                                  
-                                  return (
-                                    <li key={item.id} className="text-sm flex justify-between">
-                                      <div>
-                                        <span className="font-medium">#{index + 1} {item.name}</span>
-                                      </div>
-                                      <Badge variant="outline" className="ml-2 bg-gray-50">
-                                        {isEarlyRanking 
-                                          ? `${percentage}%`
-                                          : `${percentage}% (${item.voteCount} votes)`}
-                                      </Badge>
-                                    </li>
-                                  );
-                                })}
-                            </ul>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
+            <TabsContent value="blog">
+              <BlogManagement />
             </TabsContent>
           </Tabs>
         </div>
       </main>
       
-      <footer className="py-6 px-4 bg-gray-50 border-t mt-12">
-        <div className="container mx-auto max-w-6xl text-center text-sm text-gray-600">
-          &copy; {new Date().getFullYear()} Categlorium. All rights reserved.
+      <footer className="py-6 px-4 bg-muted/50 border-t mt-12">
+        <div className="container mx-auto max-w-6xl text-center text-sm text-muted-foreground">
+          &copy; {new Date().getFullYear()} Rankinge. All rights reserved.
         </div>
       </footer>
     </div>

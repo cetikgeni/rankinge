@@ -12,6 +12,8 @@ import Register from "./pages/Register";
 import Submit from "./pages/Submit";
 import Admin from "./pages/Admin";
 import Advertise from "./pages/Advertise";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import NotFound from "./pages/NotFound";
 
 // Create a client
@@ -33,6 +35,8 @@ const App = () => {
           <Route path="/submit" element={<Submit />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/advertise" element={<Advertise />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
