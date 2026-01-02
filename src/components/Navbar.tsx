@@ -6,28 +6,31 @@ import {
   BarChart, 
   LogIn, 
   LogOut, 
-  Plus, 
   UserPlus, 
   User,
   X,
-  LayoutDashboard
+  LayoutDashboard,
+  FileText
 } from 'lucide-react';
-import { currentUser, logout } from '@/lib/data';
+import { useAuth, signOut } from '@/hooks/useAuth';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isAdmin } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    // Force a page refresh to update auth state
-    window.location.reload();
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const isHomePage = location.pathname === '/';
-  const isAltHomePage = location.pathname === '/alt';
+  const isAltHomePage = location.pathname === '/';
 
   return (
     <nav className="bg-white py-4 shadow-sm sticky top-0 z-10">
@@ -45,11 +48,15 @@ const Navbar = () => {
           <Link to="/categories" className="text-gray-700 hover:text-brand-green transition-colors">
             Categories
           </Link>
+          <Link to="/blog" className="text-gray-700 hover:text-brand-green transition-colors flex items-center gap-1">
+            <FileText className="h-4 w-4" />
+            Blog
+          </Link>
           <Link to="/submit" className="text-gray-700 hover:text-brand-green transition-colors">
             Submit
           </Link>
           
-          {currentUser?.isAdmin && (
+          {isAdmin && (
             <Link to="/admin" className="text-gray-700 hover:text-brand-green transition-colors">
               Admin
             </Link>
@@ -76,10 +83,10 @@ const Navbar = () => {
 
           <div className="w-px h-6 bg-gray-300 mx-2" />
 
-          {currentUser ? (
+          {user ? (
             <div className="flex items-center space-x-3">
               <div className="text-sm text-gray-700">
-                <span className="font-medium">{currentUser.username}</span>
+                <span className="font-medium">{user.email?.split('@')[0]}</span>
               </div>
               <Button 
                 variant="ghost" 
@@ -134,6 +141,14 @@ const Navbar = () => {
               Categories
             </Link>
             <Link 
+              to="/blog" 
+              className="text-gray-700 py-2 hover:text-brand-green flex items-center gap-1"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              Blog
+            </Link>
+            <Link 
               to="/submit" 
               className="text-gray-700 py-2 hover:text-brand-green"
               onClick={() => setIsMenuOpen(false)}
@@ -141,7 +156,7 @@ const Navbar = () => {
               Submit
             </Link>
             
-            {currentUser?.isAdmin && (
+            {isAdmin && (
               <Link 
                 to="/admin" 
                 className="text-gray-700 py-2 hover:text-brand-green"
@@ -174,11 +189,11 @@ const Navbar = () => {
 
             <hr className="border-gray-200" />
 
-            {currentUser ? (
+            {user ? (
               <>
                 <div className="flex items-center py-2">
                   <User className="h-4 w-4 mr-2 text-gray-700" />
-                  <span className="text-sm font-medium text-gray-700">{currentUser.username}</span>
+                  <span className="text-sm font-medium text-gray-700">{user.email?.split('@')[0]}</span>
                 </div>
                 <Button 
                   variant="ghost" 
