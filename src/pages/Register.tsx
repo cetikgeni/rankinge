@@ -1,15 +1,14 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BarChart, UserPlus, Github } from 'lucide-react';
+import { BarChart, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { register } from '@/lib/data';
 import Navbar from '@/components/Navbar';
 import { Separator } from '@/components/ui/separator';
 import AdFooter from '@/components/AdFooter';
+import { supabase } from '@/integrations/supabase/client';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -17,119 +16,89 @@ const Register = () => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
-  
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Simple validation
-    if (!formData.username.trim() || !formData.email.trim() || !formData.password) {
-      toast.error('Please fill in all fields');
+
+    if (!formData.email.trim() || !formData.password) {
+      toast.error('Mohon isi email & password / Please fill email & password');
       return;
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error('Password tidak sama / Passwords do not match');
       return;
     }
-    
-    if (!formData.email.includes('@')) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-    
+
     setIsLoading(true);
-    
-    // Attempt registration
-    const user = register(formData.username, formData.email, formData.password);
-    
-    if (user) {
-      toast.success('Account created successfully!');
-      navigate('/');
-    } else {
-      toast.error('Username already exists');
+
+    const redirectUrl = `${window.location.origin}/`;
+
+    const { error } = await supabase.auth.signUp({
+      email: formData.email.trim(),
+      password: formData.password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: formData.username.trim() ? { username: formData.username.trim() } : undefined,
+      },
+    });
+
+    if (error) {
+      toast.error(error.message);
       setIsLoading(false);
+      return;
     }
+
+    toast.success('Akun berhasil dibuat / Account created');
+    navigate('/');
   };
-  
-  const handleGoogleSignup = () => {
-    setIsLoading(true);
-    
-    // Simulate Google signup with delay
-    setTimeout(() => {
-      const user = register('google_user', 'google_user@example.com', 'google_pass');
-      
-      if (user) {
-        toast.success('Google account linked successfully!');
-        navigate('/');
-      } else {
-        toast.error('Failed to sign up with Google. Try regular signup for demo.');
-        setIsLoading(false);
-      }
-    }, 1000);
-  };
-  
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      
+
       <main className="flex-grow flex items-center justify-center py-12 px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-2 text-center">
             <div className="flex justify-center mb-2">
               <BarChart className="h-8 w-8 text-brand-purple" />
             </div>
-            <CardTitle className="text-2xl">Create an account</CardTitle>
-            <CardDescription>
-              Join Rankinge to start voting and submitting categories
-            </CardDescription>
+            <CardTitle className="text-2xl">Buat akun</CardTitle>
+            <CardDescription>Daftar dengan email & password / Sign up with email & password</CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full flex items-center justify-center gap-2"
-              onClick={handleGoogleSignup}
-              disabled={isLoading}
-            >
-              <Github className="h-4 w-4" />
-              Sign up with Google
-            </Button>
-            
-            <div className="relative my-4">
+            <div className="relative my-2">
               <Separator />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
-                OR
-              </span>
             </div>
-            
+
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="username" className="text-sm font-medium">
-                    Username
+                    Username (opsional)
                   </label>
                   <Input
                     id="username"
                     name="username"
-                    placeholder="Choose a username"
+                    placeholder="edardian"
                     value={formData.username}
                     onChange={handleChange}
-                    required
+                    autoComplete="nickname"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium">
                     Email
@@ -138,13 +107,14 @@ const Register = () => {
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="edardian@gmail.com"
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    autoComplete="email"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-medium">
                     Password
@@ -153,30 +123,32 @@ const Register = () => {
                     id="password"
                     name="password"
                     type="password"
-                    placeholder="Create a password"
+                    placeholder="Buat password"
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    autoComplete="new-password"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label htmlFor="confirmPassword" className="text-sm font-medium">
-                    Confirm Password
+                    Konfirmasi Password
                   </label>
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
                     type="password"
-                    placeholder="Confirm your password"
+                    placeholder="Ulangi password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     required
+                    autoComplete="new-password"
                   />
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
+                  type="submit"
                   className="w-full bg-brand-purple hover:bg-brand-purple/90"
                   disabled={isLoading}
                 >
@@ -186,18 +158,18 @@ const Register = () => {
               </div>
             </form>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-center text-gray-600">
-              Already have an account?{' '}
+              Sudah punya akun?{' '}
               <Link to="/login" className="text-brand-purple hover:text-brand-purple/80 font-medium">
-                Log in
+                Login
               </Link>
             </div>
           </CardFooter>
         </Card>
       </main>
-      
+
       <footer className="py-6 px-4 border-t">
         <div className="container mx-auto max-w-7xl">
           <AdFooter />
