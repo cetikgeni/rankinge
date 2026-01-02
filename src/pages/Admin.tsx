@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, FolderOpen, FileText, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
@@ -22,16 +23,15 @@ const Admin = () => {
   const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) {
+    if (authLoading) return;
+
+    if (!isAdmin) {
       toast.error('Anda tidak memiliki akses admin / You do not have admin access');
-      navigate('/');
       return;
     }
 
-    if (isAdmin) {
-      fetchStats();
-    }
-  }, [authLoading, isAdmin, navigate]);
+    fetchStats();
+  }, [authLoading, isAdmin]);
 
   const fetchStats = async () => {
     setStatsLoading(true);
@@ -67,7 +67,52 @@ const Admin = () => {
   }
 
   if (!isAdmin) {
-    return null;
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+
+        <main className="flex-grow py-10 px-4">
+          <div className="container mx-auto max-w-xl">
+            <Card>
+              <CardHeader>
+                <CardTitle>Akses ditolak</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Anda tidak memiliki akses admin / You do not have admin access.
+                </p>
+
+                <div className="text-sm space-y-1">
+                  <div>
+                    <span className="text-muted-foreground">Email:</span> {user?.email ?? '-'}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">User ID:</span>{' '}
+                    <code className="text-xs">{user?.id ?? '-'}</code>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => user?.id && navigator.clipboard.writeText(user.id)}
+                    disabled={!user?.id}
+                  >
+                    Salin User ID
+                  </Button>
+                  <Button type="button" onClick={() => navigate('/')}>Kembali ke Beranda</Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Kirim <span className="font-medium">User ID</span> di atas ke saya, lalu saya set role admin di backend.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
