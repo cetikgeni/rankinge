@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Upload, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Upload, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -12,6 +11,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { FreeImageSearch } from './FreeImageSearch';
 
 interface ImageUploaderProps {
   onImageUploaded: (url: string) => void;
@@ -82,7 +82,7 @@ const ImageUploader = ({ onImageUploaded }: ImageUploaderProps) => {
   };
   
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       <div className="relative">
         <Input
           type="file"
@@ -97,9 +97,11 @@ const ImageUploader = ({ onImageUploaded }: ImageUploaderProps) => {
           className="w-full flex items-center gap-2"
         >
           <Upload className="h-4 w-4" />
-          Upload Image
+          Upload
         </Button>
       </div>
+      
+      <FreeImageSearch onImageSelected={onImageUploaded} />
       
       <Dialog open={isAIDialogOpen} onOpenChange={setIsAIDialogOpen}>
         <DialogTrigger asChild>

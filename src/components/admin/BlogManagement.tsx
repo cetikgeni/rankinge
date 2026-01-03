@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, FileText, Sparkles } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, FileText, Sparkles, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { AIGenerateButton } from '@/components/AIGenerateButton';
 import { useAIGenerate } from '@/hooks/useAIGenerate';
+import { FreeImageSearch } from '@/components/FreeImageSearch';
 
 interface BlogPost {
   id: string;
@@ -60,6 +60,44 @@ const BlogManagement = () => {
   
   const { generate, isGenerating } = useAIGenerate();
   const [generatingField, setGeneratingField] = useState<string | null>(null);
+
+  // One-click generate all (content, excerpt, and image)
+  const handleGenerateAll = async () => {
+    if (!formData.title.trim()) {
+      toast.error('Masukkan judul terlebih dahulu / Please enter a title first');
+      return;
+    }
+    
+    setGeneratingField('all');
+    
+    try {
+      // Generate content
+      const content = await generate('blog_content', formData.title);
+      if (content) {
+        // Generate excerpt from content
+        const excerpt = await generate('blog_excerpt', content as string, { title: formData.title });
+        
+        // Generate cover image URL based on title
+        const imageQuery = formData.title.split(' ').slice(0, 3).join(' ');
+        const coverImageUrl = `https://source.unsplash.com/1200x630/?${encodeURIComponent(imageQuery)}`;
+        
+        setFormData(prev => ({
+          ...prev,
+          content: content as string,
+          excerpt: excerpt as string || '',
+          cover_image_url: coverImageUrl,
+          slug: generateSlug(formData.title)
+        }));
+        
+        toast.success('Artikel lengkap berhasil digenerate! / Complete article generated!');
+      }
+    } catch (error) {
+      console.error('Generate all error:', error);
+      toast.error('Gagal generate artikel / Failed to generate article');
+    }
+    
+    setGeneratingField(null);
+  };
 
   const handleGenerateContent = async () => {
     if (!formData.title.trim()) {
@@ -196,11 +234,12 @@ const BlogManagement = () => {
       setIsDialogOpen(false);
       resetForm();
       fetchPosts();
-    } catch (error: any) {
-      if (error.code === '23505') {
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
+      if (err.code === '23505') {
         toast.error('Slug sudah digunakan / Slug already exists');
       } else {
-        toast.error(error.message || 'Terjadi kesalahan / An error occurred');
+        toast.error(err.message || 'Terjadi kesalahan / An error occurred');
       }
     }
   };
@@ -279,6 +318,40 @@ const BlogManagement = () => {
                   : 'Tulis Artikel Baru / Write New Post'}
               </DialogTitle>
             </DialogHeader>
+            
+            {/* One-Click Generate Section */}
+            {!editingPost && (
+              <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wand2 className="h-5 w-5 text-primary" />
+                  <h3 className="font-medium">Generate Artikel Lengkap dengan AI</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Masukkan judul, lalu klik tombol untuk generate konten, ringkasan, dan gambar sekaligus.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    placeholder="Masukkan judul artikel..."
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleGenerateAll}
+                    disabled={generatingField === 'all' || !formData.title.trim()}
+                  >
+                    {generatingField === 'all' ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    Generate All
+                  </Button>
+                </div>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Judul / Title *</Label>
@@ -305,11 +378,19 @@ const BlogManagement = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="excerpt">Ringkasan / Excerpt</Label>
-                  <AIGenerateButton
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={handleGenerateExcerpt}
-                    isGenerating={generatingField === 'excerpt'}
-                    tooltip="Generate excerpt with AI"
-                  />
+                    disabled={generatingField === 'excerpt'}
+                  >
+                    {generatingField === 'excerpt' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
                 <Textarea
                   id="excerpt"
@@ -322,11 +403,19 @@ const BlogManagement = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="content">Konten / Content *</Label>
-                  <AIGenerateButton
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={handleGenerateContent}
-                    isGenerating={generatingField === 'content'}
-                    tooltip="Generate content with AI"
-                  />
+                    disabled={generatingField === 'content'}
+                  >
+                    {generatingField === 'content' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
                 <Textarea
                   id="content"
@@ -338,13 +427,28 @@ const BlogManagement = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cover_image_url">URL Gambar Cover / Cover Image URL</Label>
-                <Input
-                  id="cover_image_url"
-                  value={formData.cover_image_url}
-                  onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
-                  placeholder="https://..."
-                />
+                <Label htmlFor="cover_image_url">Gambar Cover / Cover Image</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="cover_image_url"
+                    value={formData.cover_image_url}
+                    onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
+                    placeholder="https://..."
+                    className="flex-1"
+                  />
+                  <FreeImageSearch 
+                    onImageSelected={(url) => setFormData({ ...formData, cover_image_url: url })}
+                  />
+                </div>
+                {formData.cover_image_url && (
+                  <div className="mt-2 rounded-md overflow-hidden h-32">
+                    <img 
+                      src={formData.cover_image_url} 
+                      alt="Cover preview" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex items-center space-x-2">
                 <Switch

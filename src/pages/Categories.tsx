@@ -1,92 +1,133 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ChevronRight, Filter, ExternalLink, ChevronDown } from 'lucide-react';
+import { Search, ChevronRight, ExternalLink, ChevronDown, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
-import { getApprovedCategories, voteForItem, currentUser } from '@/lib/data';
 import { getAllCategoryIcons } from '@/lib/category-icons';
-import { Category, Item } from '@/lib/types';
+import { useCategories, Category } from '@/hooks/useCategories';
+import { useVoting } from '@/hooks/useVoting';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { useAuth } from '@/hooks/useAuth';
 import VoteButton from '@/components/VoteButton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const Categories = () => {
-  const allCategories = getApprovedCategories();
+  const { categories, isLoading } = useCategories(true);
   const categoryGroups = getAllCategoryIcons();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const { settings } = useAppSettings();
+  const { user } = useAuth();
   
+  // Build hierarchical structure for sidebar
+  const rootCategories = categories.filter(cat => !cat.parent_id);
+  const childCategories = categories.filter(cat => cat.parent_id);
+
   // Filter categories based on search term and selected group
-  const filteredCategories = allCategories.filter(category => {
+  const filteredCategories = categories.filter(category => {
     const matchesSearch = 
       category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      category.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (category.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesGroup = selectedGroup 
-      ? categoryGroups.find(group => group.name === selectedGroup)?.subcategories
+      ? category.category_group === selectedGroup ||
+        categoryGroups.find(group => group.name === selectedGroup)?.subcategories
           .some(sub => category.name.toLowerCase().includes(sub.name.toLowerCase())) 
       : true;
     
     return matchesSearch && matchesGroup;
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <main className="flex-grow py-10 px-4 bg-gray-50">
+      <main className="flex-grow py-10 px-4 bg-muted/30">
         <div className="container mx-auto max-w-7xl">
           <div className="flex flex-col md:flex-row gap-8">
             {/* Sidebar */}
             <div className="w-full md:w-64 flex-shrink-0">
-              <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
+              <div className="bg-card p-4 rounded-lg shadow-sm mb-6">
                 <h2 className="font-bold text-lg mb-4">Category Groups</h2>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <button 
                     className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors
-                      ${selectedGroup === null ? 'bg-brand-purple/10 text-brand-purple' : 'text-gray-700 hover:bg-gray-100'}`}
+                      ${selectedGroup === null ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'}`}
                     onClick={() => setSelectedGroup(null)}
                   >
                     All Categories
                   </button>
                   
                   {categoryGroups.map(group => (
-                    <button 
-                      key={group.name}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors
-                        ${selectedGroup === group.name ? 'bg-brand-purple/10 text-brand-purple' : 'text-gray-700 hover:bg-gray-100'}`}
-                      onClick={() => setSelectedGroup(group.name === selectedGroup ? null : group.name)}
-                    >
-                      <group.icon className="mr-2 h-4 w-4" />
-                      {group.name}
-                    </button>
+                    <Collapsible key={group.name}>
+                      <CollapsibleTrigger asChild>
+                        <button 
+                          className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center justify-between transition-colors
+                            ${selectedGroup === group.name ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'}`}
+                          onClick={() => setSelectedGroup(group.name === selectedGroup ? null : group.name)}
+                        >
+                          <span className="flex items-center">
+                            <group.icon className="mr-2 h-4 w-4" />
+                            {group.name}
+                          </span>
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="ml-6 mt-1 space-y-1">
+                          {/* Show child categories */}
+                          {categories
+                            .filter(cat => cat.category_group === group.name)
+                            .slice(0, 5)
+                            .map(cat => (
+                              <Link
+                                key={cat.id}
+                                to={`/categories/${cat.id}`}
+                                className="block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+                              >
+                                {cat.name}
+                              </Link>
+                            ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   ))}
                 </div>
               </div>
               
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="bg-card p-4 rounded-lg shadow-sm">
                 <h2 className="font-bold text-lg mb-4">Quick Links</h2>
                 <div className="space-y-2 text-sm">
                   <Link 
                     to="/submit"
-                    className="flex items-center text-brand-purple hover:underline"
+                    className="flex items-center text-primary hover:underline"
                   >
                     <ChevronRight className="h-4 w-4 mr-1" />
                     Submit New Category
                   </Link>
                   <Link 
                     to="/"
-                    className="flex items-center text-brand-purple hover:underline"
+                    className="flex items-center text-primary hover:underline"
                   >
                     <ChevronRight className="h-4 w-4 mr-1" />
                     Featured Categories
                   </Link>
                   <Link 
                     to="/advertise"
-                    className="flex items-center text-brand-purple hover:underline"
+                    className="flex items-center text-primary hover:underline"
                   >
                     <ChevronRight className="h-4 w-4 mr-1" />
                     Advertise with Us
@@ -97,13 +138,13 @@ const Categories = () => {
             
             {/* Main Content */}
             <div className="flex-grow">
-              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-                <h1 className="text-2xl font-bold mb-4 text-gray-900">Browse Categories</h1>
+              <div className="bg-card p-6 rounded-lg shadow-sm mb-6">
+                <h1 className="text-2xl font-bold mb-4 text-foreground">Browse Categories</h1>
                 
                 {/* Search Bar */}
                 <div className="relative mb-6">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400" />
+                    <Search className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <Input
                     type="text"
@@ -116,7 +157,7 @@ const Categories = () => {
                 
                 {selectedGroup && (
                   <div className="mb-4 flex items-center">
-                    <Badge variant="outline" className="mr-2 bg-brand-purple/5 text-brand-purple">
+                    <Badge variant="outline" className="mr-2 bg-primary/5 text-primary">
                       {selectedGroup}
                     </Badge>
                     <Button 
@@ -133,21 +174,22 @@ const Categories = () => {
               
               {/* Categories List */}
               {filteredCategories.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm">
-                  <div className="grid grid-cols-1 divide-y">
+                <div className="bg-card rounded-lg shadow-sm">
+                  <div className="grid grid-cols-1 divide-y divide-border">
                     {filteredCategories.map((category) => (
                       <CategoryListItem 
                         key={category.id} 
-                        category={category} 
-                        categoryGroups={categoryGroups} 
+                        category={category}
+                        voteDisplayMode={settings.voteDisplayMode}
+                        isLoggedIn={!!user}
                       />
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
-                  <p className="text-gray-600 mb-4">
+                <div className="text-center py-16 bg-card rounded-lg shadow-sm">
+                  <h3 className="text-lg font-medium text-foreground mb-2">No categories found</h3>
+                  <p className="text-muted-foreground mb-4">
                     {searchTerm 
                       ? `No categories matching "${searchTerm}"`
                       : "There are no categories available for this filter."}
@@ -166,8 +208,8 @@ const Categories = () => {
       </main>
       
       {/* Footer */}
-      <footer className="py-6 px-4 bg-gray-100 border-t">
-        <div className="container mx-auto max-w-7xl text-center text-sm text-gray-600">
+      <footer className="py-6 px-4 bg-muted/50 border-t">
+        <div className="container mx-auto max-w-7xl text-center text-sm text-muted-foreground">
           &copy; {new Date().getFullYear()} Rankinge. All rights reserved.
         </div>
       </footer>
@@ -175,75 +217,65 @@ const Categories = () => {
   );
 };
 
-const CategoryListItem = ({ category, categoryGroups }: { 
-  category: Category, 
-  categoryGroups: ReturnType<typeof getAllCategoryIcons> 
-}) => {
+interface CategoryListItemProps {
+  category: Category;
+  voteDisplayMode: string;
+  isLoggedIn: boolean;
+}
+
+const CategoryListItem = ({ category, voteDisplayMode, isLoggedIn }: CategoryListItemProps) => {
   // Get top 3 items
   const topItems = [...category.items]
-    .sort((a, b) => b.voteCount - a.voteCount)
+    .sort((a, b) => b.vote_count - a.vote_count)
     .slice(0, 3);
   
-  // State to track which item is expanded for voting
-  const [expandedItem, setExpandedItem] = useState<string | null>(null);
-  
-  // State to track if the category details are expanded
   const [isOpen, setIsOpen] = useState(false);
+  const { userVotedItemId, vote } = useVoting(category.id);
   
-  // Get user's current vote for this category
-  const userVotedItemId = currentUser?.votes[category.id];
-  
-  // Handle vote action
-  const handleVote = (itemId: string) => {
-    if (!currentUser) {
-      toast.error('You must be logged in to vote');
-      return;
-    }
-    
-    const success = voteForItem(category.id, itemId);
-    
-    if (success) {
-      // If already voted for this item, show a different message
-      if (userVotedItemId === itemId) {
-        toast('You already voted for this item');
-      } else {
-        toast.success('Your vote has been recorded!');
-      }
-    } else {
-      toast.error('Failed to record your vote');
+  const totalVotes = category.items.reduce((sum, item) => sum + item.vote_count, 0);
+
+  const getVoteDisplay = (voteCount: number) => {
+    const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+    switch (voteDisplayMode) {
+      case 'count':
+        return `${voteCount} votes`;
+      case 'both':
+        return `${percentage}% (${voteCount})`;
+      case 'percentage':
+      default:
+        return `${percentage}%`;
     }
   };
-
-  // Get the category group this category belongs to
-  const categoryGroup = selectedGroupForCategory(category, categoryGroups);
   
   return (
-    <div className="p-4 hover:bg-gray-50 transition-colors">
+    <div className="p-4 hover:bg-muted/50 transition-colors">
       <div className="flex items-start">
         <img 
-          src={category.imageUrl} 
+          src={category.image_url || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=200'} 
           alt={category.name} 
           className="w-16 h-16 object-cover rounded-md mr-4"
         />
         <div className="flex-grow">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold text-gray-900">{category.name}</h3>
-              <Badge 
-                variant="outline" 
-                className="bg-gray-50 text-xs capitalize"
-              >
-                {categoryGroup}
-              </Badge>
+              <h3 className="text-lg font-semibold text-foreground">{category.name}</h3>
+              {category.category_group && (
+                <Badge 
+                  variant="outline" 
+                  className="bg-muted text-xs capitalize"
+                >
+                  {category.category_group}
+                </Badge>
+              )}
             </div>
             <Link 
               to={`/categories/${category.id}`} 
-              className="text-brand-purple text-sm flex items-center hover:underline"
+              className="text-primary text-sm flex items-center hover:underline"
             >
               View Details <ExternalLink className="h-3.5 w-3.5 ml-1" />
             </Link>
           </div>
-          <p className="text-gray-600 text-sm mb-3 line-clamp-1">{category.description}</p>
+          <p className="text-muted-foreground text-sm mb-3 line-clamp-1">{category.description}</p>
           
           {/* Collapsible top items */}
           <Collapsible
@@ -252,7 +284,7 @@ const CategoryListItem = ({ category, categoryGroups }: {
             className="border rounded-md overflow-hidden"
           >
             <CollapsibleTrigger asChild>
-              <div className="flex justify-between items-center p-2 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+              <div className="flex justify-between items-center p-2 bg-muted/50 cursor-pointer hover:bg-muted transition-colors">
                 <span className="text-sm font-medium">Top Items ({topItems.length})</span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
               </div>
@@ -262,7 +294,7 @@ const CategoryListItem = ({ category, categoryGroups }: {
                 {topItems.map((item, index) => (
                   <div 
                     key={item.id} 
-                    className="flex justify-between items-center p-2 bg-white border-b last:border-b-0"
+                    className="flex justify-between items-center p-2 bg-card border-b last:border-b-0"
                   >
                     <div className="flex items-center">
                       <Badge 
@@ -280,17 +312,16 @@ const CategoryListItem = ({ category, categoryGroups }: {
                         #{index + 1}
                       </Badge>
                       <span className="font-medium">{item.name}</span>
-                      <Badge variant="outline" className="ml-2 bg-gray-50 text-xs">
-                        {item.voteCount} votes
+                      <Badge variant="outline" className="ml-2 bg-muted text-xs">
+                        {getVoteDisplay(item.vote_count)}
                       </Badge>
                     </div>
                     
                     <VoteButton 
                       isVoted={userVotedItemId === item.id}
-                      isLoggedIn={!!currentUser}
-                      onVote={() => {
-                        handleVote(item.id);
-                      }}
+                      isLoggedIn={isLoggedIn}
+                      onVote={() => vote(item.id)}
+                      size="sm"
                     />
                   </div>
                 ))}
@@ -299,24 +330,12 @@ const CategoryListItem = ({ category, categoryGroups }: {
           </Collapsible>
           
           <div className="mt-3 text-sm text-right">
-            <span className="text-gray-500">Total: {category.items.length} items</span>
+            <span className="text-muted-foreground">Total: {category.items.length} items</span>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-// Helper function to find which group a category belongs to
-const selectedGroupForCategory = (category: Category, categoryGroups: ReturnType<typeof getAllCategoryIcons>) => {
-  for (const group of categoryGroups) {
-    for (const subCategory of group.subcategories) {
-      if (category.name.toLowerCase().includes(subCategory.name.toLowerCase())) {
-        return group.name;
-      }
-    }
-  }
-  return "Other";
 };
 
 export default Categories;
