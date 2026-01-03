@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, FolderOpen, FileText, Loader2 } from 'lucide-react';
+import { Shield, FolderOpen, FileText, Loader2, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import CategoryManagement from '@/components/admin/CategoryManagement';
 import BlogManagement from '@/components/admin/BlogManagement';
+import AdminSettings from '@/components/admin/AdminSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -183,7 +184,7 @@ const Admin = () => {
           
           {/* Management Tabs */}
           <Tabs defaultValue="categories" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsList className="grid w-full grid-cols-3 max-w-lg">
               <TabsTrigger value="categories" className="flex items-center gap-2">
                 <FolderOpen className="h-4 w-4" />
                 Kategori
@@ -191,6 +192,10 @@ const Admin = () => {
               <TabsTrigger value="blog" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Blog
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Settings
               </TabsTrigger>
             </TabsList>
             
@@ -200,6 +205,10 @@ const Admin = () => {
             
             <TabsContent value="blog">
               <BlogManagement />
+            </TabsContent>
+            
+            <TabsContent value="settings">
+              <AdminSettings />
             </TabsContent>
           </Tabs>
         </div>

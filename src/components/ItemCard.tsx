@@ -1,12 +1,11 @@
-
 import { Item, Category } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import VoteButton from './VoteButton';
-import { currentUser } from '@/lib/data';
 import ItemIcon from './ItemIcon';
 import { ExternalLink, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { VoteDisplayMode } from '@/hooks/useAppSettings';
 
 interface ItemCardProps {
   item: Item & { productUrl?: string; affiliateUrl?: string };
@@ -15,30 +14,47 @@ interface ItemCardProps {
   onVote: (itemId: string) => void;
   userVotedItemId: string | undefined;
   totalVotesInCategory: number;
+  voteDisplayMode?: VoteDisplayMode;
+  isLoggedIn?: boolean;
 }
 
-const ItemCard = ({ item, category, rank, onVote, userVotedItemId, totalVotesInCategory }: ItemCardProps) => {
+const ItemCard = ({ 
+  item, 
+  category, 
+  rank, 
+  onVote, 
+  userVotedItemId, 
+  totalVotesInCategory,
+  voteDisplayMode = 'percentage',
+  isLoggedIn = false
+}: ItemCardProps) => {
   const isVoted = userVotedItemId === item.id;
   
   // For demo purposes, generate a product URL if none exists
   const productUrl = item.productUrl || `https://example.com/product/${item.name.toLowerCase().replace(/\s+/g, '-')}`;
   
-  // Dynamic vote display logic
-  // If total votes < 30: show percentage only + "Early Ranking" label
-  // If total votes >= 30: show both percentage and vote count
-  const isEarlyRanking = totalVotesInCategory < 30;
+  // Calculate percentage
   const percentage = totalVotesInCategory > 0 ? Math.round((item.voteCount / totalVotesInCategory) * 100) : 0;
   
-  const voteDisplay = isEarlyRanking 
-    ? `${percentage}%`
-    : `${percentage}% (${item.voteCount} votes)`;
+  // Determine vote display based on settings
+  const getVoteDisplay = () => {
+    switch (voteDisplayMode) {
+      case 'count':
+        return `${item.voteCount} votes`;
+      case 'both':
+        return `${percentage}% (${item.voteCount} votes)`;
+      case 'percentage':
+      default:
+        return `${percentage}%`;
+    }
+  };
   
   return (
-    <Card className={`overflow-hidden transition-all ${isVoted ? 'ring-2 ring-brand-purple/20' : ''}`}>
+    <Card className={`overflow-hidden transition-all ${isVoted ? 'ring-2 ring-primary/20' : ''}`}>
       <div className="flex md:flex-row flex-col">
         <div className="relative md:w-1/3 h-48 md:h-auto">
           <img 
-            src={item.imageUrl} 
+            src={item.imageUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=400'} 
             alt={item.name} 
             className="w-full h-full object-cover"
           />
@@ -57,11 +73,6 @@ const ItemCard = ({ item, category, rank, onVote, userVotedItemId, totalVotesInC
             >
               #{rank}
             </Badge>
-            {isEarlyRanking && (
-              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
-                Peringkat Awal
-              </Badge>
-            )}
           </div>
         </div>
         
@@ -69,21 +80,21 @@ const ItemCard = ({ item, category, rank, onVote, userVotedItemId, totalVotesInC
           <div>
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
+                <h3 className="text-lg font-bold text-foreground">{item.name}</h3>
                 <ItemIcon itemName={item.name} targetUrl={productUrl} />
               </div>
-              <Badge variant="outline" className="ml-2 bg-gray-50">
-                {voteDisplay}
+              <Badge variant="outline" className="ml-2 bg-muted">
+                {getVoteDisplay()}
               </Badge>
             </div>
-            <p className="text-gray-600 text-sm mb-4">{item.description}</p>
+            <p className="text-muted-foreground text-sm mb-4">{item.description}</p>
             
             <div className="flex flex-wrap gap-2 mb-4">
               {productUrl && (
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="text-xs h-8 text-brand-purple border-brand-purple/20 hover:bg-brand-purple/5"
+                  className="text-xs h-8 text-primary border-primary/20 hover:bg-primary/5"
                   onClick={() => window.open(productUrl, '_blank', 'noopener,noreferrer')}
                 >
                   Visit Website
@@ -94,7 +105,7 @@ const ItemCard = ({ item, category, rank, onVote, userVotedItemId, totalVotesInC
               {item.affiliateUrl && (
                 <Button 
                   size="sm" 
-                  className="text-xs h-8 bg-brand-green hover:bg-brand-green/90"
+                  className="text-xs h-8 bg-green-600 hover:bg-green-700"
                   onClick={() => window.open(item.affiliateUrl, '_blank', 'noopener,noreferrer')}
                 >
                   <ShoppingCart className="mr-1.5 h-3 w-3" />
@@ -107,7 +118,7 @@ const ItemCard = ({ item, category, rank, onVote, userVotedItemId, totalVotesInC
           <div className="mt-4">
             <VoteButton 
               isVoted={isVoted}
-              isLoggedIn={!!currentUser}
+              isLoggedIn={isLoggedIn}
               onVote={() => onVote(item.id)}
             />
           </div>
