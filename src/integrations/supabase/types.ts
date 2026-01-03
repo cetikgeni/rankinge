@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_id: string | null
@@ -66,7 +90,9 @@ export type Database = {
           image_url: string | null
           is_approved: boolean | null
           name: string
+          parent_id: string | null
           updated_at: string
+          vote_display_mode: string | null
         }
         Insert: {
           category_group?: string | null
@@ -77,7 +103,9 @@ export type Database = {
           image_url?: string | null
           is_approved?: boolean | null
           name: string
+          parent_id?: string | null
           updated_at?: string
+          vote_display_mode?: string | null
         }
         Update: {
           category_group?: string | null
@@ -88,9 +116,19 @@ export type Database = {
           image_url?: string | null
           is_approved?: boolean | null
           name?: string
+          parent_id?: string | null
           updated_at?: string
+          vote_display_mode?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       items: {
         Row: {
