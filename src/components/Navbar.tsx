@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { useAuth, signOut } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslation } from '@/contexts/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -26,6 +28,7 @@ const Navbar = () => {
   const location = useLocation();
   const { user, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     try {
@@ -54,21 +57,21 @@ const Navbar = () => {
         <div className="hidden md:flex md:items-center md:space-x-4">
           <Link to="/categories" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5">
             <FolderOpen className="h-4 w-4" />
-            Categories
+            {t('nav.categories')}
           </Link>
           <Link to="/blog" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5">
             <FileText className="h-4 w-4" />
-            Blog
+            {t('nav.blog')}
           </Link>
           <Link to="/submit" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5">
             <Send className="h-4 w-4" />
-            Submit
+            {t('nav.submit')}
           </Link>
           
           {isAdmin && (
             <Link to="/admin" className="text-foreground/80 hover:text-primary transition-colors flex items-center gap-1.5">
               <Shield className="h-4 w-4" />
-              Admin
+              {t('nav.admin')}
             </Link>
           )}
 
@@ -94,12 +97,16 @@ const Navbar = () => {
 
           <div className="w-px h-6 bg-border mx-2" />
 
+          {/* Language switcher */}
+          <LanguageSwitcher />
+
           {/* Dark mode toggle */}
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
             className="text-foreground/80 hover:text-primary"
+            title={theme === 'dark' ? t('nav.lightMode') : t('nav.darkMode')}
           >
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
@@ -116,7 +123,7 @@ const Navbar = () => {
                 onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4" />
-                <span>Logout</span>
+                <span>{t('nav.logout')}</span>
               </Button>
             </div>
           ) : (
@@ -124,13 +131,13 @@ const Navbar = () => {
               <Button asChild variant="ghost" size="sm">
                 <Link to="/login" className="flex items-center gap-1">
                   <LogIn className="h-4 w-4" />
-                  <span>Login</span>
+                  <span>{t('nav.login')}</span>
                 </Link>
               </Button>
               <Button asChild variant="default" size="sm">
                 <Link to="/register" className="flex items-center gap-1">
                   <UserPlus className="h-4 w-4" />
-                  <span>Register</span>
+                  <span>{t('nav.register')}</span>
                 </Link>
               </Button>
             </div>
@@ -160,7 +167,7 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               <FolderOpen className="h-4 w-4" />
-              Categories
+              {t('nav.categories')}
             </Link>
             <Link 
               to="/blog" 
@@ -168,7 +175,7 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               <FileText className="h-4 w-4" />
-              Blog
+              {t('nav.blog')}
             </Link>
             <Link 
               to="/submit" 
@@ -176,7 +183,7 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               <Send className="h-4 w-4" />
-              Submit
+              {t('nav.submit')}
             </Link>
             
             {isAdmin && (
@@ -186,7 +193,7 @@ const Navbar = () => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Shield className="h-4 w-4" />
-                Admin
+                {t('nav.admin')}
               </Link>
             )}
 
@@ -214,6 +221,11 @@ const Navbar = () => {
 
             <hr className="border-border" />
 
+            {/* Language switcher for mobile */}
+            <div className="py-2">
+              <LanguageSwitcher />
+            </div>
+
             {/* Dark mode toggle for mobile */}
             <Button
               variant="ghost"
@@ -221,7 +233,7 @@ const Navbar = () => {
               onClick={toggleTheme}
             >
               {theme === 'dark' ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
-              <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+              <span>{theme === 'dark' ? t('nav.lightMode') : t('nav.darkMode')}</span>
             </Button>
 
             {user ? (
@@ -239,7 +251,7 @@ const Navbar = () => {
                   }}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
-                  <span>Logout</span>
+                  <span>{t('nav.logout')}</span>
                 </Button>
               </>
             ) : (
@@ -252,7 +264,7 @@ const Navbar = () => {
                 >
                   <Link to="/login" className="text-foreground/80">
                     <LogIn className="h-4 w-4 mr-2" />
-                    <span>Login</span>
+                    <span>{t('nav.login')}</span>
                   </Link>
                 </Button>
                 <Button 
@@ -262,7 +274,7 @@ const Navbar = () => {
                 >
                   <Link to="/register">
                     <UserPlus className="h-4 w-4 mr-2" />
-                    <span>Register</span>
+                    <span>{t('nav.register')}</span>
                   </Link>
                 </Button>
               </>

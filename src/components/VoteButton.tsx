@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, ThumbsUp } from 'lucide-react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface VoteButtonProps {
   isVoted: boolean;
@@ -12,6 +12,7 @@ interface VoteButtonProps {
 
 const VoteButton = ({ isVoted, isLoggedIn, onVote, size = 'default' }: VoteButtonProps) => {
   const [isAnimating, setIsAnimating] = useState(false);
+  const { t } = useTranslation();
 
   const handleVote = () => {
     if (!isLoggedIn) return;
@@ -34,7 +35,7 @@ const VoteButton = ({ isVoted, isLoggedIn, onVote, size = 'default' }: VoteButto
         className="w-full md:w-auto text-sm"
       >
         <ThumbsUp className="h-4 w-4 mr-2" />
-        Login to vote
+        {t('vote.loginToVote')}
       </Button>
     );
   }
@@ -46,19 +47,19 @@ const VoteButton = ({ isVoted, isLoggedIn, onVote, size = 'default' }: VoteButto
       onClick={handleVote}
       className={`w-full md:w-auto transition-all ${
         isVoted 
-          ? 'bg-brand-green hover:bg-brand-green/90 text-white' 
-          : 'hover:border-brand-green hover:text-brand-green'
+          ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+          : 'hover:border-primary hover:text-primary'
       } ${isAnimating ? 'animate-vote-pulse' : ''}`}
     >
       {isVoted ? (
         <>
           <Check className="h-4 w-4 mr-2" />
-          Voted
+          {t('vote.voted')}
         </>
       ) : (
         <>
           <ThumbsUp className="h-4 w-4 mr-2" />
-          Vote
+          {t('vote.button')}
         </>
       )}
     </Button>

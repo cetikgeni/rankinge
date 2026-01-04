@@ -3,28 +3,33 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Loader2, FileText, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface BlogPost {
   id: string;
   title: string;
+  title_id: string | null;
   slug: string;
   excerpt: string | null;
+  excerpt_id: string | null;
   cover_image_url: string | null;
   published_at: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
 }
 
 const Blog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { language, t } = useTranslation();
 
   useEffect(() => {
     const fetchPosts = async () => {
       const { data, error } = await supabase
         .from('blog_posts')
-        .select('id, title, slug, excerpt, cover_image_url, published_at')
+        .select('id, title, title_id, slug, excerpt, excerpt_id, cover_image_url, published_at, meta_title, meta_description')
         .eq('is_published', true)
         .order('published_at', { ascending: false });
 
@@ -39,6 +44,16 @@ const Blog = () => {
     fetchPosts();
   }, []);
 
+  const getTitle = (post: BlogPost) => {
+    if (language === 'id' && post.title_id) return post.title_id;
+    return post.title;
+  };
+
+  const getExcerpt = (post: BlogPost) => {
+    if (language === 'id' && post.excerpt_id) return post.excerpt_id;
+    return post.excerpt;
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -46,9 +61,9 @@ const Blog = () => {
       <main className="flex-grow py-10 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-4">Blog</h1>
+            <h1 className="text-4xl font-bold mb-4 text-foreground">{t('blog.title')}</h1>
             <p className="text-muted-foreground text-lg">
-              Artikel dan berita terbaru / Latest articles and news
+              {t('blog.subtitle')}
             </p>
           </div>
           
@@ -61,10 +76,10 @@ const Blog = () => {
               <CardContent className="py-16 text-center">
                 <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
                 <h3 className="text-xl font-medium text-muted-foreground mb-2">
-                  Belum ada artikel / No posts yet
+                  {t('blog.noPosts')}
                 </h3>
                 <p className="text-muted-foreground">
-                  Artikel akan segera hadir / Posts coming soon
+                  {t('blog.comingSoon')}
                 </p>
               </CardContent>
             </Card>
@@ -78,7 +93,7 @@ const Blog = () => {
                         <div className="md:w-64 h-48 md:h-auto flex-shrink-0">
                           <img
                             src={post.cover_image_url}
-                            alt={post.title}
+                            alt={getTitle(post)}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -86,13 +101,13 @@ const Blog = () => {
                       <div className="flex-grow">
                         <CardHeader>
                           <CardTitle className="text-xl hover:text-primary transition-colors">
-                            {post.title}
+                            {getTitle(post)}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          {post.excerpt && (
+                          {getExcerpt(post) && (
                             <p className="text-muted-foreground mb-4 line-clamp-2">
-                              {post.excerpt}
+                              {getExcerpt(post)}
                             </p>
                           )}
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -114,7 +129,7 @@ const Blog = () => {
       
       <footer className="py-6 px-4 bg-muted/50 border-t">
         <div className="container mx-auto max-w-6xl text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Rankinge. All rights reserved.
+          &copy; {new Date().getFullYear()} Rankinge. {t('footer.rights')}
         </div>
       </footer>
     </div>
