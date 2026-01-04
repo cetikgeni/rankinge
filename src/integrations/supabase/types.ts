@@ -41,41 +41,65 @@ export type Database = {
       blog_posts: {
         Row: {
           author_id: string | null
+          category: string | null
           content: string
+          content_id: string | null
           cover_image_url: string | null
           created_at: string
           excerpt: string | null
+          excerpt_id: string | null
           id: string
           is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          og_description: string | null
+          og_title: string | null
           published_at: string | null
           slug: string
           title: string
+          title_id: string | null
           updated_at: string
         }
         Insert: {
           author_id?: string | null
+          category?: string | null
           content: string
+          content_id?: string | null
           cover_image_url?: string | null
           created_at?: string
           excerpt?: string | null
+          excerpt_id?: string | null
           id?: string
           is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          og_description?: string | null
+          og_title?: string | null
           published_at?: string | null
           slug: string
           title: string
+          title_id?: string | null
           updated_at?: string
         }
         Update: {
           author_id?: string | null
+          category?: string | null
           content?: string
+          content_id?: string | null
           cover_image_url?: string | null
           created_at?: string
           excerpt?: string | null
+          excerpt_id?: string | null
           id?: string
           is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          og_description?: string | null
+          og_title?: string | null
           published_at?: string | null
           slug?: string
           title?: string
+          title_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -177,6 +201,51 @@ export type Database = {
           },
         ]
       }
+      ranking_snapshots: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          item_id: string
+          rank_position: number
+          snapshot_at: string
+          vote_count: number
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          item_id: string
+          rank_position: number
+          snapshot_at?: string
+          vote_count?: number
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          rank_position?: number
+          snapshot_at?: string
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ranking_snapshots_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ranking_snapshots_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -242,6 +311,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_ranking_snapshot: {
+        Args: { p_category_id: string }
+        Returns: undefined
+      }
       generate_slug: { Args: { title: string }; Returns: string }
       has_role: {
         Args: {

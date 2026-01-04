@@ -6,6 +6,7 @@ import ItemIcon from './ItemIcon';
 import { ExternalLink, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VoteDisplayMode } from '@/hooks/useAppSettings';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ItemCardProps {
   item: Item & { productUrl?: string; affiliateUrl?: string };
@@ -29,6 +30,7 @@ const ItemCard = ({
   isLoggedIn = false
 }: ItemCardProps) => {
   const isVoted = userVotedItemId === item.id;
+  const { t } = useTranslation();
   
   // For demo purposes, generate a product URL if none exists
   const productUrl = item.productUrl || `https://example.com/product/${item.name.toLowerCase().replace(/\s+/g, '-')}`;
@@ -40,9 +42,9 @@ const ItemCard = ({
   const getVoteDisplay = () => {
     switch (voteDisplayMode) {
       case 'count':
-        return `${item.voteCount} votes`;
+        return `${item.voteCount} ${t('vote.votes')}`;
       case 'both':
-        return `${percentage}% (${item.voteCount} votes)`;
+        return `${percentage}% (${item.voteCount} ${t('vote.votes')})`;
       case 'percentage':
       default:
         return `${percentage}%`;
@@ -63,12 +65,12 @@ const ItemCard = ({
               variant="secondary" 
               className={`text-xs font-semibold ${
                 rank === 1 
-                  ? 'bg-yellow-100 text-yellow-800' 
+                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200' 
                   : rank === 2 
-                  ? 'bg-gray-200 text-gray-800' 
+                  ? 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200' 
                   : rank === 3 
-                  ? 'bg-amber-100 text-amber-800' 
-                  : 'bg-white text-gray-800'
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200' 
+                  : 'bg-background text-foreground'
               }`}
             >
               #{rank}
@@ -97,7 +99,7 @@ const ItemCard = ({
                   className="text-xs h-8 text-primary border-primary/20 hover:bg-primary/5"
                   onClick={() => window.open(productUrl, '_blank', 'noopener,noreferrer')}
                 >
-                  Visit Website
+                  {t('action.visitWebsite')}
                   <ExternalLink className="ml-1.5 h-3 w-3" />
                 </Button>
               )}
@@ -109,7 +111,7 @@ const ItemCard = ({
                   onClick={() => window.open(item.affiliateUrl, '_blank', 'noopener,noreferrer')}
                 >
                   <ShoppingCart className="mr-1.5 h-3 w-3" />
-                  Beli / Buy
+                  {t('action.buy')}
                 </Button>
               )}
             </div>

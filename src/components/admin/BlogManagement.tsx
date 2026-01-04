@@ -24,15 +24,29 @@ interface BlogPost {
   is_published: boolean | null;
   published_at: string | null;
   created_at: string;
+  title_id?: string | null;
+  content_id?: string | null;
+  excerpt_id?: string | null;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
+  category?: string | null;
 }
 
 interface BlogFormData {
   title: string;
+  title_id: string;
   slug: string;
   content: string;
+  content_id: string;
   excerpt: string;
+  excerpt_id: string;
   cover_image_url: string;
   is_published: boolean;
+  meta_title: string;
+  meta_description: string;
+  category: string;
 }
 
 const generateSlug = (title: string): string => {
@@ -51,11 +65,17 @@ const BlogManagement = () => {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [formData, setFormData] = useState<BlogFormData>({
     title: '',
+    title_id: '',
     slug: '',
     content: '',
+    content_id: '',
     excerpt: '',
+    excerpt_id: '',
     cover_image_url: '',
     is_published: false,
+    meta_title: '',
+    meta_description: '',
+    category: '',
   });
   
   const { generate, isGenerating } = useAIGenerate();
@@ -150,11 +170,17 @@ const BlogManagement = () => {
   const resetForm = () => {
     setFormData({
       title: '',
+      title_id: '',
       slug: '',
       content: '',
+      content_id: '',
       excerpt: '',
+      excerpt_id: '',
       cover_image_url: '',
       is_published: false,
+      meta_title: '',
+      meta_description: '',
+      category: '',
     });
     setEditingPost(null);
   };
@@ -168,11 +194,17 @@ const BlogManagement = () => {
     setEditingPost(post);
     setFormData({
       title: post.title,
+      title_id: post.title_id || '',
       slug: post.slug,
       content: post.content,
+      content_id: post.content_id || '',
       excerpt: post.excerpt || '',
+      excerpt_id: post.excerpt_id || '',
       cover_image_url: post.cover_image_url || '',
       is_published: post.is_published || false,
+      meta_title: post.meta_title || '',
+      meta_description: post.meta_description || '',
+      category: post.category || '',
     });
     setIsDialogOpen(true);
   };
@@ -201,14 +233,20 @@ const BlogManagement = () => {
           .from('blog_posts')
           .update({
             title: formData.title,
+            title_id: formData.title_id || null,
             slug,
             content: formData.content,
+            content_id: formData.content_id || null,
             excerpt: formData.excerpt || null,
+            excerpt_id: formData.excerpt_id || null,
             cover_image_url: formData.cover_image_url || null,
             is_published: formData.is_published,
             published_at: formData.is_published && !editingPost.published_at 
               ? new Date().toISOString() 
               : editingPost.published_at,
+            meta_title: formData.meta_title || null,
+            meta_description: formData.meta_description || null,
+            category: formData.category || null,
           })
           .eq('id', editingPost.id);
 
@@ -219,12 +257,18 @@ const BlogManagement = () => {
           .from('blog_posts')
           .insert({
             title: formData.title,
+            title_id: formData.title_id || null,
             slug,
             content: formData.content,
+            content_id: formData.content_id || null,
             excerpt: formData.excerpt || null,
+            excerpt_id: formData.excerpt_id || null,
             cover_image_url: formData.cover_image_url || null,
             is_published: formData.is_published,
             published_at: formData.is_published ? new Date().toISOString() : null,
+            meta_title: formData.meta_title || null,
+            meta_description: formData.meta_description || null,
+            category: formData.category || null,
           });
 
         if (error) throw error;
