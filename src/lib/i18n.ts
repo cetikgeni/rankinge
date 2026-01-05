@@ -24,11 +24,15 @@ export const translations = {
   // Categories
   'categories.title': { en: 'All Categories', id: 'Semua Kategori' },
   'categories.popular': { en: 'Popular Categories', id: 'Kategori Populer' },
+  'categories.featured': { en: 'Featured Categories', id: 'Kategori Unggulan' },
   'categories.viewAll': { en: 'View all categories', id: 'Lihat semua kategori' },
   'categories.browseAll': { en: 'Browse All Categories', id: 'Jelajahi Semua Kategori' },
   'categories.notFound': { en: 'Category Not Found', id: 'Kategori Tidak Ditemukan' },
   'categories.notFoundDesc': { en: 'The category you\'re looking for doesn\'t exist or has been removed.', id: 'Kategori yang Anda cari tidak ada atau telah dihapus.' },
   'categories.backToAll': { en: 'Back to all categories', id: 'Kembali ke semua kategori' },
+  'categories.empty': { en: 'No categories available yet.', id: 'Belum ada kategori tersedia.' },
+  'categories.createFirst': { en: 'Create the first category', id: 'Buat kategori pertama' },
+  'categories.noCategories': { en: 'No categories found. Be the first to create one!', id: 'Tidak ada kategori ditemukan. Jadilah yang pertama!' },
   
   // Ranking
   'ranking.title': { en: 'Rankings', id: 'Peringkat' },
@@ -43,6 +47,7 @@ export const translations = {
   'ranking.movement.down': { en: 'Down', id: 'Turun' },
   'ranking.movement.stable': { en: 'Stable', id: 'Stabil' },
   'ranking.lastUpdated': { en: 'Last updated', id: 'Terakhir diperbarui' },
+  'ranking.seedContent': { en: 'Initial ranking — generated to bootstrap content. Rankings will evolve with user votes.', id: 'Peringkat awal — dibuat untuk bootstrap konten. Peringkat akan berubah sesuai voting pengguna.' },
   
   // Voting
   'vote.button': { en: 'Vote', id: 'Vote' },
@@ -110,6 +115,28 @@ export const translations = {
   'admin.settings': { en: 'Settings', id: 'Pengaturan' },
   'admin.categories': { en: 'Categories', id: 'Kategori' },
   'admin.blog': { en: 'Blog', id: 'Blog' },
+  'admin.aiGenerator': { en: 'AI Content Generator', id: 'Generator Konten AI' },
+  
+  // Image Search
+  'imageSearch.button': { en: 'Search Free Images', id: 'Cari Gambar Gratis' },
+  'imageSearch.title': { en: 'Free Image Search', id: 'Pencarian Gambar Gratis' },
+  'imageSearch.placeholder': { en: 'Search images... (e.g., smartphone, coffee)', id: 'Cari gambar... (contoh: smartphone, kopi)' },
+  'imageSearch.empty': { en: 'Search for images or select a collection to start', id: 'Cari gambar atau pilih koleksi untuk memulai' },
+  'imageSearch.attribution': { en: 'Images from Unsplash - Free for commercial use', id: 'Gambar dari Unsplash - Gratis untuk penggunaan komersial' },
+  
+  // AI Generator
+  'ai.generator': { en: 'AI Content Generator', id: 'Generator Konten AI' },
+  'ai.generateCategories': { en: 'Generate Categories', id: 'Buat Kategori' },
+  'ai.generateItems': { en: 'Generate Items', id: 'Buat Item' },
+  'ai.generateBlog': { en: 'Generate Blog Content', id: 'Buat Konten Blog' },
+  'ai.seedRanking': { en: 'Generate Initial Ranking Distribution', id: 'Buat Distribusi Peringkat Awal' },
+  'ai.seedWarning': { en: 'This creates initial rankings only. Real votes will override seed data.', id: 'Ini hanya membuat peringkat awal. Vote asli akan menggantikan data seed.' },
+  'ai.language': { en: 'Content Language', id: 'Bahasa Konten' },
+  'ai.quantity': { en: 'Quantity', id: 'Jumlah' },
+  'ai.generate': { en: 'Generate', id: 'Buat' },
+  'ai.generating': { en: 'Generating...', id: 'Membuat...' },
+  'ai.success': { en: 'Content generated successfully', id: 'Konten berhasil dibuat' },
+  'ai.error': { en: 'Failed to generate content', id: 'Gagal membuat konten' },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

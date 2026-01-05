@@ -1,24 +1,39 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, BarChart3, ThumbsUp, Users } from 'lucide-react';
+import { ArrowRight, BarChart3, ThumbsUp, Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import CategoryCard from '@/components/CategoryCard';
-import { getApprovedCategories } from '@/lib/data';
-import { getAllCategoryIcons } from '@/lib/category-icons';
+import { useCategories } from '@/hooks/useCategories';
 import CategorySearch from '@/components/CategorySearch';
 import CategoryGroup from '@/components/CategoryGroup';
 import { useTranslation } from '@/contexts/LanguageContext';
-import React from 'react';
 
 const Index = () => {
   const { t } = useTranslation();
+  const { categories, isLoading } = useCategories(true);
   
-  // Get categories to display
-  const allCategories = getApprovedCategories();
-  const featuredCategories = allCategories.slice(0, 8);
-
-  const allCategoryIcons = getAllCategoryIcons();
+  // Get featured categories (first 8)
+  const featuredCategories = categories.slice(0, 8);
+  
+  // Group categories by category_group
+  const categoryGroups = categories.reduce((acc, cat) => {
+    const group = cat.category_group || 'Other';
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(cat);
+    return acc;
+  }, {} as Record<string, typeof categories>);
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -45,7 +60,7 @@ const Index = () => {
       </section>
 
       {/* Featured Categories with images */}
-      <CategoryGroup title="Featured Tech Categories" categoryGroup="Technology" showImages={true} limit={4} />
+      <CategoryGroup title={t('categories.featured')} categoryGroup="Technology" showImages={true} limit={4} />
       
       {/* Featured Categories */}
       <section className="py-16 px-4">
@@ -58,16 +73,51 @@ const Index = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredCategories.map(category => <CategoryCard key={category.id} category={category} />)}
-          </div>
+          {featuredCategories.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredCategories.map(category => (
+                <CategoryCard 
+                  key={category.id} 
+                  category={{
+                    id: category.id,
+                    name: category.name,
+                    description: category.description || '',
+                    imageUrl: category.image_url || '',
+                    items: category.items.map(item => ({
+                      id: item.id,
+                      name: item.name,
+                      description: item.description || '',
+                      imageUrl: item.image_url || '',
+                      voteCount: item.vote_count
+                    })),
+                    isApproved: category.is_approved,
+                    createdBy: '',
+                    settings: { displayVoteAs: 'count' }
+                  }} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-card rounded-lg">
+              <p className="text-muted-foreground">{t('categories.empty')}</p>
+              <Button asChild className="mt-4">
+                <Link to="/submit">{t('categories.createFirst')}</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </section>
       
-      {/* Three additional category rows with icons (no images) */}
-      <CategoryGroup title="Food & Beverages" categoryGroup="Food & Beverages" showImages={false} limit={4} />
-      <CategoryGroup title="Fashion Favorites" categoryGroup="Fashion & Apparel" showImages={false} limit={4} />
-      <CategoryGroup title="Entertainment Picks" categoryGroup="Entertainment" showImages={false} limit={4} />
+      {/* Category Groups from Database */}
+      {Object.entries(categoryGroups).slice(0, 3).map(([groupName, groupCategories]) => (
+        <CategoryGroup 
+          key={groupName} 
+          title={groupName} 
+          categoryGroup={groupName} 
+          showImages={false} 
+          limit={4} 
+        />
+      ))}
       
       {/* Categories Search & Browse Section */}
       <section className="py-16 px-4 bg-muted/50">
@@ -79,43 +129,43 @@ const Index = () => {
             <CategorySearch />
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {allCategoryIcons.map(categoryGroup => (
-              <div key={categoryGroup.name} className="mb-8">
-                <h3 className="text-lg font-bold mb-4 text-foreground flex items-center">
-                  {React.createElement(categoryGroup.icon, {
-                    className: "mr-2 h-5 w-5 text-primary"
-                  })}
-                  {categoryGroup.name}
-                </h3>
-                <ul className="space-y-2">
-                  {categoryGroup.subcategories.slice(0, 6).map(subCategory => (
-                    <li key={subCategory.name}>
-                      <Link 
-                        to={`/categories?filter=${subCategory.name.toLowerCase()}`} 
-                        className="text-muted-foreground hover:text-primary transition-colors flex items-center text-sm"
-                      >
-                        {React.createElement(subCategory.icon, {
-                          className: "mr-2 h-4 w-4 text-muted-foreground"
-                        })}
-                        {subCategory.name}
-                      </Link>
-                    </li>
-                  ))}
-                  {categoryGroup.subcategories.length > 6 && (
-                    <li className="pt-1">
-                      <Link 
-                        to={`/categories?group=${categoryGroup.name.toLowerCase()}`} 
-                        className="text-primary hover:text-primary/80 text-sm font-medium"
-                      >
-                        + {categoryGroup.subcategories.length - 6} more
-                      </Link>
-                    </li>
-                  )}
-                </ul>
-              </div>
-            ))}
-          </div>
+          {categories.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {Object.entries(categoryGroups).map(([groupName, groupCats]) => (
+                <div key={groupName} className="mb-8">
+                  <h3 className="text-lg font-bold mb-4 text-foreground">
+                    {groupName}
+                  </h3>
+                  <ul className="space-y-2">
+                    {groupCats.slice(0, 6).map(cat => (
+                      <li key={cat.id}>
+                        <Link 
+                          to={`/categories/${cat.id}`} 
+                          className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                        >
+                          {cat.name}
+                        </Link>
+                      </li>
+                    ))}
+                    {groupCats.length > 6 && (
+                      <li className="pt-1">
+                        <Link 
+                          to={`/categories?group=${encodeURIComponent(groupName)}`} 
+                          className="text-primary hover:text-primary/80 text-sm font-medium"
+                        >
+                          + {groupCats.length - 6} more
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">{t('categories.noCategories')}</p>
+            </div>
+          )}
         </div>
       </section>
       
