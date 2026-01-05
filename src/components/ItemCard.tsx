@@ -17,6 +17,7 @@ interface ItemCardProps {
   totalVotesInCategory: number;
   voteDisplayMode?: VoteDisplayMode;
   isLoggedIn?: boolean;
+  hideRank?: boolean;
 }
 
 const ItemCard = ({ 
@@ -27,7 +28,8 @@ const ItemCard = ({
   userVotedItemId, 
   totalVotesInCategory,
   voteDisplayMode = 'percentage',
-  isLoggedIn = false
+  isLoggedIn = false,
+  hideRank = false
 }: ItemCardProps) => {
   const isVoted = userVotedItemId === item.id;
   const { t } = useTranslation();
@@ -60,22 +62,24 @@ const ItemCard = ({
             alt={item.name} 
             className="w-full h-full object-cover"
           />
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
-            <Badge 
-              variant="secondary" 
-              className={`text-xs font-semibold ${
-                rank === 1 
-                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200' 
-                  : rank === 2 
-                  ? 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200' 
-                  : rank === 3 
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200' 
-                  : 'bg-background text-foreground'
-              }`}
-            >
-              #{rank}
-            </Badge>
-          </div>
+          {!hideRank && (
+            <div className="absolute top-2 left-2 flex flex-col gap-1">
+              <Badge 
+                variant="secondary" 
+                className={`text-xs font-semibold ${
+                  rank === 1 
+                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200' 
+                    : rank === 2 
+                    ? 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200' 
+                    : rank === 3 
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200' 
+                    : 'bg-background text-foreground'
+                }`}
+              >
+                #{rank}
+              </Badge>
+            </div>
+          )}
         </div>
         
         <CardContent className="p-4 md:p-6 flex-1 flex flex-col justify-between">

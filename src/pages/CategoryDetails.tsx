@@ -126,46 +126,63 @@ const CategoryDetails = () => {
                   <LiveRankingBadge isLive={isLive} lastUpdated={lastSnapshot} />
                 </div>
                 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {items.map((item, index) => {
                     const movement = getMovement(item.id);
+                    const rank = index + 1;
                     return (
-                      <div key={item.id} className="relative">
-                        {movement && (
-                          <div className="absolute -left-2 top-2 z-10">
+                      <div key={item.id} className="flex items-start gap-4 p-4 bg-muted/30 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                        {/* Rank Number */}
+                        <div className="flex flex-col items-center min-w-[60px]">
+                          <span className={`text-2xl font-bold ${
+                            rank === 1 ? 'text-yellow-500' : 
+                            rank === 2 ? 'text-gray-400' : 
+                            rank === 3 ? 'text-amber-600' : 
+                            'text-muted-foreground'
+                          }`}>
+                            {String(rank).padStart(2, '0')}
+                          </span>
+                          {movement && (
                             <RankingMovementBadge 
                               movement={movement.movement} 
-                              previousRank={movement.previousRank} 
+                              previousRank={movement.previousRank}
+                              currentRank={rank}
+                              size="sm"
                             />
-                          </div>
-                        )}
-                        <ItemCard 
-                          item={{
-                            id: item.id,
-                            name: item.name,
-                            description: item.description || '',
-                            imageUrl: item.image_url || '',
-                            voteCount: item.vote_count,
-                            productUrl: item.product_url || undefined,
-                            affiliateUrl: item.affiliate_url || undefined
-                          }}
-                          category={{
-                            id: category.id,
-                            name: category.name,
-                            description: category.description || '',
-                            imageUrl: category.image_url || '',
-                            items: [],
-                            isApproved: category.is_approved,
-                            createdBy: '',
-                            settings: { displayVoteAs: 'count' }
-                          }}
-                          rank={index + 1}
-                          onVote={handleVote}
-                          userVotedItemId={userVotedItemId || undefined}
-                          totalVotesInCategory={totalVotes}
-                          voteDisplayMode={settings.voteDisplayMode}
-                          isLoggedIn={!!user}
-                        />
+                          )}
+                        </div>
+                        
+                        {/* Item Content */}
+                        <div className="flex-grow">
+                          <ItemCard 
+                            item={{
+                              id: item.id,
+                              name: item.name,
+                              description: item.description || '',
+                              imageUrl: item.image_url || '',
+                              voteCount: item.vote_count,
+                              productUrl: item.product_url || undefined,
+                              affiliateUrl: item.affiliate_url || undefined
+                            }}
+                            category={{
+                              id: category.id,
+                              name: category.name,
+                              description: category.description || '',
+                              imageUrl: category.image_url || '',
+                              items: [],
+                              isApproved: category.is_approved,
+                              createdBy: '',
+                              settings: { displayVoteAs: 'count' }
+                            }}
+                            rank={rank}
+                            onVote={handleVote}
+                            userVotedItemId={userVotedItemId || undefined}
+                            totalVotesInCategory={totalVotes}
+                            voteDisplayMode={settings.voteDisplayMode}
+                            isLoggedIn={!!user}
+                            hideRank={true}
+                          />
+                        </div>
                       </div>
                     );
                   })}

@@ -15,6 +15,7 @@ import Advertise from "./pages/Advertise";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import NotFound from "./pages/NotFound";
+import AIContentGenerator from "./pages/admin/AIContentGenerator";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/submit" element={<Submit />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/ai-generator" element={<AIContentGenerator />} />
             <Route path="/advertise" element={<Advertise />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
