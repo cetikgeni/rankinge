@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import VoteButton from './VoteButton';
 import ItemIcon from './ItemIcon';
-import { ExternalLink, ShoppingCart } from 'lucide-react';
+import { ExternalLink, ShoppingCart, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VoteDisplayMode } from '@/hooks/useAppSettings';
 import { useTranslation } from '@/contexts/LanguageContext';
@@ -18,6 +18,7 @@ interface ItemCardProps {
   voteDisplayMode?: VoteDisplayMode;
   isLoggedIn?: boolean;
   hideRank?: boolean;
+  compact?: boolean;
 }
 
 const ItemCard = ({ 
@@ -29,7 +30,8 @@ const ItemCard = ({
   totalVotesInCategory,
   voteDisplayMode = 'percentage',
   isLoggedIn = false,
-  hideRank = false
+  hideRank = false,
+  compact = false
 }: ItemCardProps) => {
   const isVoted = userVotedItemId === item.id;
   const { t } = useTranslation();
@@ -52,6 +54,28 @@ const ItemCard = ({
         return `${percentage}%`;
     }
   };
+
+  // Compact mode - just show vote button
+  if (compact) {
+    return (
+      <Button
+        size="sm"
+        variant={isVoted ? "default" : "outline"}
+        onClick={() => isLoggedIn && onVote(item.id)}
+        disabled={!isLoggedIn}
+        className={`min-w-[80px] ${isVoted ? 'bg-primary text-primary-foreground' : ''}`}
+      >
+        {isVoted ? (
+          <>
+            <Check className="h-4 w-4 mr-1" />
+            {t('vote.voted')}
+          </>
+        ) : (
+          t('vote.button')
+        )}
+      </Button>
+    );
+  }
   
   return (
     <Card className={`overflow-hidden transition-all ${isVoted ? 'ring-2 ring-primary/20' : ''}`}>
