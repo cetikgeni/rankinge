@@ -154,6 +154,33 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_read: boolean | null
+          message: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          name?: string
+        }
+        Relationships: []
+      }
       items: {
         Row: {
           affiliate_url: string | null
@@ -201,6 +228,36 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ranking_snapshots: {
         Row: {
           category_id: string
@@ -245,6 +302,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      static_pages: {
+        Row: {
+          content: string
+          content_id: string | null
+          created_at: string
+          id: string
+          is_published: boolean | null
+          meta_description: string | null
+          meta_title: string | null
+          slug: string
+          title: string
+          title_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          content_id?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          slug: string
+          title: string
+          title_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          content_id?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          meta_description?: string | null
+          meta_title?: string | null
+          slug?: string
+          title?: string
+          title_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

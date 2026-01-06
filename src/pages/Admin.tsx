@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Shield, FolderOpen, FileText, Loader2, Settings } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Shield, FolderOpen, FileText, Loader2, Settings, Users, Sparkles, Mail, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import CategoryManagement from '@/components/admin/CategoryManagement';
 import BlogManagement from '@/components/admin/BlogManagement';
 import AdminSettings from '@/components/admin/AdminSettings';
+import UserManagement from '@/components/admin/UserManagement';
+import StaticPagesManagement from '@/components/admin/StaticPagesManagement';
+import ContactMessages from '@/components/admin/ContactMessages';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,6 +24,7 @@ const Admin = () => {
     pendingCategories: 0,
     totalPosts: 0,
     publishedPosts: 0,
+    unreadMessages: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -47,11 +52,18 @@ const Admin = () => {
       .from('blog_posts')
       .select('is_published');
 
+    // Fetch unread messages count
+    const { count: unreadMessages } = await supabase
+      .from('contact_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false);
+
     setStats({
       totalCategories: categories?.length || 0,
       pendingCategories: categories?.filter(c => !c.is_approved).length || 0,
       totalPosts: posts?.length || 0,
       publishedPosts: posts?.filter(p => p.is_published).length || 0,
+      unreadMessages: unreadMessages || 0,
     });
     setStatsLoading(false);
   };
@@ -112,6 +124,7 @@ const Admin = () => {
             </Card>
           </div>
         </main>
+        <Footer />
       </div>
     );
   }
@@ -122,13 +135,21 @@ const Admin = () => {
       
       <main className="flex-grow py-10 px-4">
         <div className="container mx-auto max-w-6xl">
-          <div className="flex items-center gap-3 mb-8">
-            <Shield className="h-6 w-6 text-primary" />
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <Shield className="h-6 w-6 text-primary" />
+              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            </div>
+            <Link to="/admin/ai-generator">
+              <Button>
+                <Sparkles className="h-4 w-4 mr-2" />
+                AI Generator
+              </Button>
+            </Link>
           </div>
           
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -180,22 +201,47 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Pesan Belum Dibaca
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {statsLoading ? '-' : stats.unreadMessages}
+                </div>
+              </CardContent>
+            </Card>
           </div>
           
           {/* Management Tabs */}
           <Tabs defaultValue="categories" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 max-w-lg">
+            <TabsList className="grid w-full grid-cols-6 max-w-3xl">
               <TabsTrigger value="categories" className="flex items-center gap-2">
                 <FolderOpen className="h-4 w-4" />
-                Kategori
+                <span className="hidden sm:inline">Kategori</span>
               </TabsTrigger>
               <TabsTrigger value="blog" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Blog
+                <span className="hidden sm:inline">Blog</span>
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Users</span>
+              </TabsTrigger>
+              <TabsTrigger value="pages" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                <span className="hidden sm:inline">Pages</span>
+              </TabsTrigger>
+              <TabsTrigger value="messages" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                <span className="hidden sm:inline">Messages</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                Settings
+                <span className="hidden sm:inline">Settings</span>
               </TabsTrigger>
             </TabsList>
             
@@ -206,6 +252,18 @@ const Admin = () => {
             <TabsContent value="blog">
               <BlogManagement />
             </TabsContent>
+
+            <TabsContent value="users">
+              <UserManagement />
+            </TabsContent>
+
+            <TabsContent value="pages">
+              <StaticPagesManagement />
+            </TabsContent>
+
+            <TabsContent value="messages">
+              <ContactMessages />
+            </TabsContent>
             
             <TabsContent value="settings">
               <AdminSettings />
@@ -214,11 +272,7 @@ const Admin = () => {
         </div>
       </main>
       
-      <footer className="py-6 px-4 bg-muted/50 border-t mt-12">
-        <div className="container mx-auto max-w-6xl text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Rankinge. All rights reserved.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

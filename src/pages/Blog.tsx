@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { Loader2, FileText, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from '@/contexts/LanguageContext';
 
@@ -127,11 +128,7 @@ const Blog = () => {
         </div>
       </main>
       
-      <footer className="py-6 px-4 bg-muted/50 border-t">
-        <div className="container mx-auto max-w-6xl text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Rankinge. {t('footer.rights')}
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

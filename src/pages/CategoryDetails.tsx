@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import ItemCard from '@/components/ItemCard';
 import { useCategoryById } from '@/hooks/useCategories';
 import { useVoting } from '@/hooks/useVoting';
@@ -10,17 +11,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLiveRanking } from '@/hooks/useLiveRanking';
 import { useRankingHistory } from '@/hooks/useRankingHistory';
 import { useTranslation } from '@/contexts/LanguageContext';
-import AdFooter from '@/components/AdFooter';
 import SidebarAd from '@/components/SidebarAd';
 import LiveRankingBadge from '@/components/LiveRankingBadge';
 import RankingMovementBadge from '@/components/RankingMovementBadge';
+import AdminCategoryEditor from '@/components/admin/AdminCategoryEditor';
 
 const CategoryDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const { category, isLoading } = useCategoryById(id);
+  const { category, isLoading, refetch } = useCategoryById(id);
   const { userVotedItemId, vote } = useVoting(id);
   const { settings } = useAppSettings();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { items: liveItems, isLive } = useLiveRanking(id);
   const { getMovement, lastSnapshot } = useRankingHistory(id);
   const { t } = useTranslation();
@@ -79,13 +80,37 @@ const CategoryDetails = () => {
       
       <main className="flex-grow py-10 px-4 bg-muted/30">
         <div className="container mx-auto max-w-7xl">
-          <Link 
-            to="/categories" 
-            className="inline-flex items-center text-primary hover:text-primary/80 mb-6"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t('categories.backToAll')}
-          </Link>
+          <div className="flex items-center justify-between mb-6">
+            <Link 
+              to="/categories" 
+              className="inline-flex items-center text-primary hover:text-primary/80"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {t('categories.backToAll')}
+            </Link>
+            
+            {/* Admin Edit Button */}
+            {isAdmin && category && (
+              <AdminCategoryEditor
+                category={{
+                  id: category.id,
+                  name: category.name,
+                  description: category.description,
+                  image_url: category.image_url,
+                  category_group: category.category_group,
+                }}
+                items={items.map(item => ({
+                  id: item.id,
+                  name: item.name,
+                  description: item.description,
+                  image_url: item.image_url,
+                  product_url: item.product_url,
+                  affiliate_url: item.affiliate_url,
+                }))}
+                onUpdate={refetch}
+              />
+            )}
+          </div>
           
           <div className="flex flex-col md:flex-row gap-8">
             <div className="md:w-3/4">
@@ -127,65 +152,71 @@ const CategoryDetails = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {items.map((item, index) => {
-                    const movement = getMovement(item.id);
-                    const rank = index + 1;
-                    return (
-                      <div key={item.id} className="flex items-start gap-4 p-4 bg-muted/30 rounded-lg border border-border hover:border-primary/30 transition-colors">
-                        {/* Rank Number */}
-                        <div className="flex flex-col items-center min-w-[60px]">
-                          <span className={`text-2xl font-bold ${
-                            rank === 1 ? 'text-yellow-500' : 
-                            rank === 2 ? 'text-gray-400' : 
-                            rank === 3 ? 'text-amber-600' : 
-                            'text-muted-foreground'
-                          }`}>
-                            {String(rank).padStart(2, '0')}
-                          </span>
-                          {movement && (
-                            <RankingMovementBadge 
-                              movement={movement.movement} 
-                              previousRank={movement.previousRank}
-                              currentRank={rank}
-                              size="sm"
+                  {items.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <p>No items in this category yet.</p>
+                    </div>
+                  ) : (
+                    items.map((item, index) => {
+                      const movement = getMovement(item.id);
+                      const rank = index + 1;
+                      return (
+                        <div key={item.id} className="flex items-start gap-4 p-4 bg-muted/30 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                          {/* Rank Number */}
+                          <div className="flex flex-col items-center min-w-[60px]">
+                            <span className={`text-2xl font-bold ${
+                              rank === 1 ? 'text-yellow-500' : 
+                              rank === 2 ? 'text-gray-400' : 
+                              rank === 3 ? 'text-amber-600' : 
+                              'text-muted-foreground'
+                            }`}>
+                              {String(rank).padStart(2, '0')}
+                            </span>
+                            {movement && (
+                              <RankingMovementBadge 
+                                movement={movement.movement} 
+                                previousRank={movement.previousRank}
+                                currentRank={rank}
+                                size="sm"
+                              />
+                            )}
+                          </div>
+                          
+                          {/* Item Content */}
+                          <div className="flex-grow">
+                            <ItemCard 
+                              item={{
+                                id: item.id,
+                                name: item.name,
+                                description: item.description || '',
+                                imageUrl: item.image_url || '',
+                                voteCount: item.vote_count,
+                                productUrl: item.product_url || undefined,
+                                affiliateUrl: item.affiliate_url || undefined
+                              }}
+                              category={{
+                                id: category.id,
+                                name: category.name,
+                                description: category.description || '',
+                                imageUrl: category.image_url || '',
+                                items: [],
+                                isApproved: category.is_approved,
+                                createdBy: '',
+                                settings: { displayVoteAs: 'count' }
+                              }}
+                              rank={rank}
+                              onVote={handleVote}
+                              userVotedItemId={userVotedItemId || undefined}
+                              totalVotesInCategory={totalVotes}
+                              voteDisplayMode={settings.voteDisplayMode}
+                              isLoggedIn={!!user}
+                              hideRank={true}
                             />
-                          )}
+                          </div>
                         </div>
-                        
-                        {/* Item Content */}
-                        <div className="flex-grow">
-                          <ItemCard 
-                            item={{
-                              id: item.id,
-                              name: item.name,
-                              description: item.description || '',
-                              imageUrl: item.image_url || '',
-                              voteCount: item.vote_count,
-                              productUrl: item.product_url || undefined,
-                              affiliateUrl: item.affiliate_url || undefined
-                            }}
-                            category={{
-                              id: category.id,
-                              name: category.name,
-                              description: category.description || '',
-                              imageUrl: category.image_url || '',
-                              items: [],
-                              isApproved: category.is_approved,
-                              createdBy: '',
-                              settings: { displayVoteAs: 'count' }
-                            }}
-                            rank={rank}
-                            onVote={handleVote}
-                            userVotedItemId={userVotedItemId || undefined}
-                            totalVotesInCategory={totalVotes}
-                            voteDisplayMode={settings.voteDisplayMode}
-                            isLoggedIn={!!user}
-                            hideRank={true}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
                 
                 {/* Affiliate Disclosure */}
@@ -244,11 +275,7 @@ const CategoryDetails = () => {
         </div>
       </main>
       
-      <footer className="py-6 px-4 bg-card border-t">
-        <div className="container mx-auto max-w-7xl">
-          <AdFooter />
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
