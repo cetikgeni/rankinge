@@ -104,47 +104,47 @@ export function useCategoryById(id: string | undefined) {
   const [category, setCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchCategory = async () => {
     if (!id) {
       setIsLoading(false);
       return;
     }
 
-    const fetchCategory = async () => {
-      setIsLoading(true);
-      
-      const { data: categoryData, error: categoryError } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-      
-      if (categoryError || !categoryData) {
-        console.error('Error fetching category:', categoryError);
-        setCategory(null);
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('items')
-        .select('*')
-        .eq('category_id', id)
-        .order('vote_count', { ascending: false });
-
-      if (itemsError) {
-        console.error('Error fetching items:', itemsError);
-      }
-
-      setCategory({
-        ...categoryData,
-        items: itemsData || []
-      });
+    setIsLoading(true);
+    
+    const { data: categoryData, error: categoryError } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    
+    if (categoryError || !categoryData) {
+      console.error('Error fetching category:', categoryError);
+      setCategory(null);
       setIsLoading(false);
-    };
+      return;
+    }
 
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('items')
+      .select('*')
+      .eq('category_id', id)
+      .order('vote_count', { ascending: false });
+
+    if (itemsError) {
+      console.error('Error fetching items:', itemsError);
+    }
+
+    setCategory({
+      ...categoryData,
+      items: itemsData || []
+    });
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
     fetchCategory();
   }, [id]);
 
-  return { category, isLoading, refetch: () => {} };
+  return { category, isLoading, refetch: fetchCategory };
 }

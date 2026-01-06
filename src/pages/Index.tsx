@@ -3,6 +3,7 @@ import { ArrowRight, BarChart3, ThumbsUp, Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import CategoryCard from '@/components/CategoryCard';
 import { useCategories } from '@/hooks/useCategories';
 import CategorySearch from '@/components/CategorySearch';
@@ -227,20 +228,7 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Footer */}
-      <footer className="py-8 px-4 bg-card text-muted-foreground mt-auto border-t">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <span className="text-lg font-bold text-foreground">Rankinge</span>
-            </div>
-            <div className="text-sm">
-              &copy; {new Date().getFullYear()} Rankinge. {t('footer.rights')}
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

@@ -90,6 +90,13 @@ export const translations = {
   // Footer
   'footer.rights': { en: 'All rights reserved.', id: 'Hak cipta dilindungi.' },
   'footer.affiliate': { en: 'Some links are affiliate links.', id: 'Beberapa tautan adalah tautan afiliasi.' },
+  'footer.quickLinks': { en: 'Quick Links', id: 'Tautan Cepat' },
+  'footer.company': { en: 'Company', id: 'Perusahaan' },
+  'footer.legal': { en: 'Legal', id: 'Legal' },
+  'footer.aboutUs': { en: 'About Us', id: 'Tentang Kami' },
+  'footer.contactUs': { en: 'Contact Us', id: 'Hubungi Kami' },
+  'footer.terms': { en: 'Terms of Service', id: 'Syarat Layanan' },
+  'footer.privacy': { en: 'Privacy Policy', id: 'Kebijakan Privasi' },
   
   // Actions
   'action.visitWebsite': { en: 'Visit Website', id: 'Kunjungi Situs' },
@@ -98,6 +105,8 @@ export const translations = {
   'action.cancel': { en: 'Cancel', id: 'Batal' },
   'action.save': { en: 'Save', id: 'Simpan' },
   'action.create': { en: 'Create', id: 'Buat' },
+  'action.edit': { en: 'Edit', id: 'Ubah' },
+  'action.delete': { en: 'Delete', id: 'Hapus' },
   
   // Status
   'status.loading': { en: 'Loading...', id: 'Memuat...' },
@@ -116,6 +125,9 @@ export const translations = {
   'admin.categories': { en: 'Categories', id: 'Kategori' },
   'admin.blog': { en: 'Blog', id: 'Blog' },
   'admin.aiGenerator': { en: 'AI Content Generator', id: 'Generator Konten AI' },
+  'admin.users': { en: 'User Management', id: 'Manajemen Pengguna' },
+  'admin.pages': { en: 'Static Pages', id: 'Halaman Statis' },
+  'admin.messages': { en: 'Messages', id: 'Pesan' },
   
   // Image Search
   'imageSearch.button': { en: 'Search Free Images', id: 'Cari Gambar Gratis' },
@@ -137,6 +149,13 @@ export const translations = {
   'ai.generating': { en: 'Generating...', id: 'Membuat...' },
   'ai.success': { en: 'Content generated successfully', id: 'Konten berhasil dibuat' },
   'ai.error': { en: 'Failed to generate content', id: 'Gagal membuat konten' },
+  
+  // Static Pages
+  'pages.about': { en: 'About', id: 'Tentang' },
+  'pages.faq': { en: 'FAQ', id: 'FAQ' },
+  'pages.contact': { en: 'Contact', id: 'Kontak' },
+  'pages.terms': { en: 'Terms', id: 'Syarat' },
+  'pages.privacy': { en: 'Privacy', id: 'Privasi' },
 } as const;
 
 export type TranslationKey = keyof typeof translations;
