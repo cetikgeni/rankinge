@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { formatMarkdownSafe } from '@/lib/safeMarkdown';
 
 const Terms = () => {
   const { language } = useTranslation();
@@ -47,7 +48,7 @@ const Terms = () => {
       <main className="flex-grow py-10 px-4">
         <div className="container mx-auto max-w-3xl">
           <article className="prose prose-lg dark:prose-invert max-w-none">
-            <div dangerouslySetInnerHTML={{ __html: formatMarkdown(content?.content || '') }} />
+            <div dangerouslySetInnerHTML={{ __html: formatMarkdownSafe(content?.content || '') }} />
           </article>
         </div>
       </main>
@@ -55,16 +56,5 @@ const Terms = () => {
     </div>
   );
 };
-
-function formatMarkdown(text: string): string {
-  return text
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-    .replace(/\*(.*)\*/gim, '<em>$1</em>')
-    .replace(/^\- (.*$)/gim, '<li>$1</li>')
-    .replace(/\n/gim, '<br />');
-}
 
 export default Terms;
