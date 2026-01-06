@@ -12,6 +12,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { formatMarkdownSafe } from '@/lib/safeMarkdown';
 
+// Validation constants
+const MAX_NAME_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 255;
+const MAX_MESSAGE_LENGTH = 5000;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const Contact = () => {
   const { language, t } = useTranslation();
   const [content, setContent] = useState<{ title: string; content: string } | null>(null);
@@ -23,6 +29,7 @@ const Contact = () => {
     email: '',
     message: '',
   });
+  const [errors, setErrors] = useState<{ name?: string; email?: string; message?: string }>({});
 
   useEffect(() => {
     const fetchPage = async () => {
@@ -44,20 +51,56 @@ const Contact = () => {
     fetchPage();
   }, [language]);
 
+  const validateForm = (): boolean => {
+    const newErrors: { name?: string; email?: string; message?: string } = {};
+    const trimmedName = formData.name.trim();
+    const trimmedEmail = formData.email.trim();
+    const trimmedMessage = formData.message.trim();
+
+    // Required field checks
+    if (!trimmedName) {
+      newErrors.name = language === 'id' ? 'Nama wajib diisi' : 'Name is required';
+    } else if (trimmedName.length > MAX_NAME_LENGTH) {
+      newErrors.name = language === 'id' 
+        ? `Nama maksimal ${MAX_NAME_LENGTH} karakter` 
+        : `Name must be less than ${MAX_NAME_LENGTH} characters`;
+    }
+
+    if (!trimmedEmail) {
+      newErrors.email = language === 'id' ? 'Email wajib diisi' : 'Email is required';
+    } else if (!EMAIL_REGEX.test(trimmedEmail)) {
+      newErrors.email = language === 'id' ? 'Format email tidak valid' : 'Invalid email format';
+    } else if (trimmedEmail.length > MAX_EMAIL_LENGTH) {
+      newErrors.email = language === 'id' 
+        ? `Email maksimal ${MAX_EMAIL_LENGTH} karakter` 
+        : `Email must be less than ${MAX_EMAIL_LENGTH} characters`;
+    }
+
+    if (!trimmedMessage) {
+      newErrors.message = language === 'id' ? 'Pesan wajib diisi' : 'Message is required';
+    } else if (trimmedMessage.length > MAX_MESSAGE_LENGTH) {
+      newErrors.message = language === 'id' 
+        ? `Pesan maksimal ${MAX_MESSAGE_LENGTH} karakter` 
+        : `Message must be less than ${MAX_MESSAGE_LENGTH} characters`;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
-      toast.error(language === 'id' ? 'Semua field wajib diisi' : 'All fields are required');
+    if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
 
     const { error } = await supabase.from('contact_messages').insert({
-      name: formData.name,
-      email: formData.email,
-      message: formData.message,
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      message: formData.message.trim(),
     });
 
     setIsSubmitting(false);
@@ -119,10 +162,15 @@ const Contact = () => {
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value });
+                        if (errors.name) setErrors({ ...errors, name: undefined });
+                      }}
                       placeholder={language === 'id' ? 'Nama Anda' : 'Your name'}
-                      required
+                      maxLength={MAX_NAME_LENGTH}
+                      className={errors.name ? 'border-destructive' : ''}
                     />
+                    {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -130,21 +178,36 @@ const Contact = () => {
                       id="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        if (errors.email) setErrors({ ...errors, email: undefined });
+                      }}
                       placeholder="email@example.com"
-                      required
+                      maxLength={MAX_EMAIL_LENGTH}
+                      className={errors.email ? 'border-destructive' : ''}
                     />
+                    {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="message">{language === 'id' ? 'Pesan' : 'Message'}</Label>
+                    <Label htmlFor="message">
+                      {language === 'id' ? 'Pesan' : 'Message'}
+                      <span className="text-muted-foreground text-xs ml-2">
+                        ({formData.message.length}/{MAX_MESSAGE_LENGTH})
+                      </span>
+                    </Label>
                     <Textarea
                       id="message"
                       value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, message: e.target.value });
+                        if (errors.message) setErrors({ ...errors, message: undefined });
+                      }}
                       placeholder={language === 'id' ? 'Tulis pesan Anda...' : 'Write your message...'}
                       rows={5}
-                      required
+                      maxLength={MAX_MESSAGE_LENGTH}
+                      className={errors.message ? 'border-destructive' : ''}
                     />
+                    {errors.message && <p className="text-sm text-destructive">{errors.message}</p>}
                   </div>
                   <Button type="submit" disabled={isSubmitting} className="w-full">
                     {isSubmitting ? (

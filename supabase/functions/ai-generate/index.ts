@@ -1,12 +1,32 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Allowed origins for CORS - restricts which domains can call this function
+const ALLOWED_ORIGINS = [
+  Deno.env.get("SITE_URL") || "",
+  "https://lovable.dev",
+  "https://www.lovable.dev",
+].filter(Boolean);
+
+const getCorsHeaders = (origin: string | null) => {
+  // Allow the origin if it's in our allowed list, or if it's a Lovable preview URL
+  const isAllowed = origin && (
+    ALLOWED_ORIGINS.includes(origin) ||
+    origin.endsWith(".lovable.app") ||
+    origin.endsWith(".lovableproject.com")
+  );
+  
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : ALLOWED_ORIGINS[0] || "https://lovable.dev",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
 };
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
