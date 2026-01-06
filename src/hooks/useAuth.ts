@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -17,65 +17,96 @@ export const useAuth = () => {
     isAdmin: false,
   });
 
+  const checkAdminRole = useCallback(async (userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking admin role:', error);
+        return false;
+      }
+
+      return !!data;
+    } catch (err) {
+      console.error('Exception checking admin role:', err);
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
-    // Get initial session
     const initSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!isMounted) return;
-      
-      if (session?.user) {
-        const isAdmin = await checkAdminRole(session.user.id);
-        if (isMounted) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        
+        if (session?.user) {
+          const isAdmin = await checkAdminRole(session.user.id);
+          if (isMounted) {
+            setAuthState({
+              user: session.user,
+              session,
+              isLoading: false,
+              isAdmin,
+            });
+          }
+        } else {
           setAuthState({
-            user: session.user,
-            session,
+            user: null,
+            session: null,
             isLoading: false,
-            isAdmin,
+            isAdmin: false,
           });
         }
-      } else {
-        setAuthState({
-          user: null,
-          session: null,
-          isLoading: false,
-          isAdmin: false,
-        });
+      } catch (error) {
+        console.error('Error initializing session:', error);
+        if (isMounted) {
+          setAuthState({
+            user: null,
+            session: null,
+            isLoading: false,
+            isAdmin: false,
+          });
+        }
       }
     };
 
     initSession();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (!isMounted) return;
         
-        setAuthState(prev => ({
-          ...prev,
-          user: session?.user ?? null,
-          session: session,
-          isLoading: false,
-        }));
-        
-        // Defer admin check with setTimeout to prevent deadlock
         if (session?.user) {
-          setTimeout(async () => {
-            if (!isMounted) return;
-            const isAdmin = await checkAdminRole(session.user.id);
-            if (isMounted) {
-              setAuthState(prev => ({
-                ...prev,
-                isAdmin,
-              }));
-            }
-          }, 0);
-        } else {
+          // Set user first, then check admin role
           setAuthState(prev => ({
             ...prev,
-            isAdmin: false,
+            user: session.user,
+            session: session,
+            isLoading: false,
           }));
+          
+          // Check admin role
+          const isAdmin = await checkAdminRole(session.user.id);
+          if (isMounted) {
+            setAuthState(prev => ({
+              ...prev,
+              isAdmin,
+            }));
+          }
+        } else {
+          setAuthState({
+            user: null,
+            session: null,
+            isLoading: false,
+            isAdmin: false,
+          });
         }
       }
     );
@@ -84,26 +115,18 @@ export const useAuth = () => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [checkAdminRole]);
 
-  return authState;
+  // Provide a refresh function to manually re-check admin status
+  const refreshAdminStatus = useCallback(async () => {
+    if (authState.user) {
+      const isAdmin = await checkAdminRole(authState.user.id);
+      setAuthState(prev => ({ ...prev, isAdmin }));
+    }
+  }, [authState.user, checkAdminRole]);
+
+  return { ...authState, refreshAdminStatus };
 };
-
-async function checkAdminRole(userId: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId)
-    .eq('role', 'admin')
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error checking admin role:', error);
-    return false;
-  }
-
-  return !!data;
-}
 
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut();

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, CheckCircle, XCircle, Clock, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { FreeImageSearch } from '@/components/FreeImageSearch';
 
 interface Category {
   id: string;
@@ -27,6 +29,26 @@ interface CategoryFormData {
   category_group: string;
 }
 
+// Predefined category groups with icons
+const CATEGORY_GROUPS = [
+  { id: 'Technology', name: 'Technology', icon: '💻' },
+  { id: 'Food & Beverages', name: 'Food & Beverages', icon: '🍔' },
+  { id: 'Fashion & Apparel', name: 'Fashion & Apparel', icon: '👗' },
+  { id: 'Entertainment', name: 'Entertainment', icon: '🎬' },
+  { id: 'Sports & Fitness', name: 'Sports & Fitness', icon: '⚽' },
+  { id: 'Home & Living', name: 'Home & Living', icon: '🏠' },
+  { id: 'Travel & Tourism', name: 'Travel & Tourism', icon: '✈️' },
+  { id: 'Health & Wellness', name: 'Health & Wellness', icon: '💪' },
+  { id: 'Education', name: 'Education', icon: '📚' },
+  { id: 'Automotive', name: 'Automotive', icon: '🚗' },
+  { id: 'Gaming', name: 'Gaming', icon: '🎮' },
+  { id: 'Beauty & Personal Care', name: 'Beauty & Personal Care', icon: '💄' },
+  { id: 'Music & Audio', name: 'Music & Audio', icon: '🎵' },
+  { id: 'Pets & Animals', name: 'Pets & Animals', icon: '🐕' },
+  { id: 'Art & Design', name: 'Art & Design', icon: '🎨' },
+  { id: 'Business & Finance', name: 'Business & Finance', icon: '💼' },
+];
+
 const CategoryManagement = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +60,8 @@ const CategoryManagement = () => {
     image_url: '',
     category_group: '',
   });
+  const [customGroup, setCustomGroup] = useState('');
+  const [useCustomGroup, setUseCustomGroup] = useState(false);
 
   const fetchCategories = async () => {
     setIsLoading(true);
@@ -67,6 +91,8 @@ const CategoryManagement = () => {
       category_group: '',
     });
     setEditingCategory(null);
+    setCustomGroup('');
+    setUseCustomGroup(false);
   };
 
   const handleOpenCreate = () => {
@@ -76,12 +102,20 @@ const CategoryManagement = () => {
 
   const handleOpenEdit = (category: Category) => {
     setEditingCategory(category);
+    const existingGroup = CATEGORY_GROUPS.find(g => g.id === category.category_group);
     setFormData({
       name: category.name,
       description: category.description || '',
       image_url: category.image_url || '',
-      category_group: category.category_group || '',
+      category_group: existingGroup ? category.category_group || '' : '',
     });
+    if (category.category_group && !existingGroup) {
+      setUseCustomGroup(true);
+      setCustomGroup(category.category_group);
+    } else {
+      setUseCustomGroup(false);
+      setCustomGroup('');
+    }
     setIsDialogOpen(true);
   };
 
@@ -93,6 +127,8 @@ const CategoryManagement = () => {
       return;
     }
 
+    const finalGroup = useCustomGroup ? customGroup : formData.category_group;
+
     try {
       if (editingCategory) {
         const { error } = await supabase
@@ -101,7 +137,7 @@ const CategoryManagement = () => {
             name: formData.name,
             description: formData.description || null,
             image_url: formData.image_url || null,
-            category_group: formData.category_group || null,
+            category_group: finalGroup || null,
           })
           .eq('id', editingCategory.id);
 
@@ -114,8 +150,8 @@ const CategoryManagement = () => {
             name: formData.name,
             description: formData.description || null,
             image_url: formData.image_url || null,
-            category_group: formData.category_group || null,
-            is_approved: true, // Admin-created categories are auto-approved
+            category_group: finalGroup || null,
+            is_approved: true,
           });
 
         if (error) throw error;
@@ -176,6 +212,15 @@ const CategoryManagement = () => {
     }
   };
 
+  const handleImageSelected = (imageUrl: string) => {
+    setFormData({ ...formData, image_url: imageUrl });
+  };
+
+  const getGroupIcon = (groupId: string | null) => {
+    const group = CATEGORY_GROUPS.find(g => g.id === groupId);
+    return group?.icon || '📁';
+  };
+
   const pendingCategories = categories.filter(c => c.is_approved === false || c.is_approved === null);
   const approvedCategories = categories.filter(c => c.is_approved === true);
 
@@ -197,10 +242,10 @@ const CategoryManagement = () => {
           <DialogTrigger asChild>
             <Button onClick={handleOpenCreate}>
               <Plus className="h-4 w-4 mr-2" />
-              Tambah Kategori / Add Category
+              Tambah Kategori
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {editingCategory 
@@ -229,25 +274,81 @@ const CategoryManagement = () => {
                   rows={3}
                 />
               </div>
+              
+              {/* Image Selection */}
               <div className="space-y-2">
-                <Label htmlFor="image_url">URL Gambar / Image URL</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://..."
-                />
+                <Label>Gambar / Image</Label>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    value={formData.image_url}
+                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                    placeholder="URL gambar atau cari..."
+                    className="flex-1"
+                  />
+                  <FreeImageSearch onImageSelected={handleImageSelected} />
+                </div>
+                {formData.image_url && (
+                  <div className="mt-2">
+                    <img 
+                      src={formData.image_url} 
+                      alt="Preview" 
+                      className="w-32 h-20 object-cover rounded-md border"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
               </div>
+
+              {/* Category Group Selection */}
               <div className="space-y-2">
-                <Label htmlFor="category_group">Grup Kategori / Category Group</Label>
-                <Input
-                  id="category_group"
-                  value={formData.category_group}
-                  onChange={(e) => setFormData({ ...formData, category_group: e.target.value })}
-                  placeholder="e.g., Technology, Lifestyle"
-                />
+                <Label>Grup Kategori / Category Group</Label>
+                <div className="space-y-2">
+                  <Select 
+                    value={useCustomGroup ? 'custom' : formData.category_group} 
+                    onValueChange={(value) => {
+                      if (value === 'custom') {
+                        setUseCustomGroup(true);
+                        setFormData({ ...formData, category_group: '' });
+                      } else {
+                        setUseCustomGroup(false);
+                        setFormData({ ...formData, category_group: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih grup kategori..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORY_GROUPS.map(group => (
+                        <SelectItem key={group.id} value={group.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{group.icon}</span>
+                            <span>{group.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">
+                        <span className="flex items-center gap-2">
+                          <span>✏️</span>
+                          <span>Custom Group...</span>
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {useCustomGroup && (
+                    <Input
+                      value={customGroup}
+                      onChange={(e) => setCustomGroup(e.target.value)}
+                      placeholder="Masukkan nama grup baru..."
+                    />
+                  )}
+                </div>
               </div>
-              <div className="flex justify-end gap-2">
+
+              <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Batal / Cancel
                 </Button>
@@ -272,7 +373,10 @@ const CategoryManagement = () => {
               <Card key={category.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{category.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <span>{getGroupIcon(category.category_group)}</span>
+                      <CardTitle className="text-lg">{category.name}</CardTitle>
+                    </div>
                     <Badge variant="outline" className="bg-amber-50 text-amber-700">
                       Pending
                     </Badge>
@@ -327,19 +431,29 @@ const CategoryManagement = () => {
               <Card key={category.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{category.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <span>{getGroupIcon(category.category_group)}</span>
+                      <CardTitle className="text-lg">{category.name}</CardTitle>
+                    </div>
                     <Badge variant="outline" className="bg-green-50 text-green-700">
                       Approved
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {category.description || 'Tidak ada deskripsi / No description'}
+                  {category.image_url && (
+                    <img 
+                      src={category.image_url} 
+                      alt={category.name}
+                      className="w-full h-24 object-cover rounded-md mb-3"
+                    />
+                  )}
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {category.description || 'Tidak ada deskripsi'}
                   </p>
                   {category.category_group && (
-                    <Badge variant="secondary" className="mb-4">
-                      {category.category_group}
+                    <Badge variant="secondary" className="mb-3">
+                      {getGroupIcon(category.category_group)} {category.category_group}
                     </Badge>
                   )}
                   <div className="flex gap-2">

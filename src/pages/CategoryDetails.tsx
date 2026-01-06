@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, ArrowUp, ArrowDown, Minus, Sparkles } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ItemCard from '@/components/ItemCard';
@@ -13,8 +13,8 @@ import { useRankingHistory } from '@/hooks/useRankingHistory';
 import { useTranslation } from '@/contexts/LanguageContext';
 import SidebarAd from '@/components/SidebarAd';
 import LiveRankingBadge from '@/components/LiveRankingBadge';
-import RankingMovementBadge from '@/components/RankingMovementBadge';
 import AdminCategoryEditor from '@/components/admin/AdminCategoryEditor';
+import { Badge } from '@/components/ui/badge';
 
 const CategoryDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -73,6 +73,57 @@ const CategoryDetails = () => {
   }
   
   const totalVotes = items.reduce((sum, item) => sum + item.vote_count, 0);
+  
+  // Render movement indicator like professional sports rankings
+  const renderMovement = (itemId: string, currentRank: number) => {
+    const movement = getMovement(itemId);
+    
+    if (!movement) {
+      // No previous data - show as stable
+      return (
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Minus className="h-3 w-3" />
+        </div>
+      );
+    }
+    
+    const { movement: type, previousRank } = movement;
+    const change = previousRank ? previousRank - currentRank : 0;
+    
+    if (type === 'new') {
+      return (
+        <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-xs px-1.5 py-0.5">
+          <Sparkles className="h-3 w-3 mr-0.5" />
+          NEW
+        </Badge>
+      );
+    }
+    
+    if (type === 'up' && change > 0) {
+      return (
+        <div className="flex items-center gap-0.5 text-green-600 font-medium text-sm">
+          <ArrowUp className="h-4 w-4" />
+          <span>{change}</span>
+        </div>
+      );
+    }
+    
+    if (type === 'down' && change < 0) {
+      return (
+        <div className="flex items-center gap-0.5 text-red-600 font-medium text-sm">
+          <ArrowDown className="h-4 w-4" />
+          <span>{Math.abs(change)}</span>
+        </div>
+      );
+    }
+    
+    // Stable
+    return (
+      <div className="flex items-center text-muted-foreground">
+        <Minus className="h-3 w-3" />
+      </div>
+    );
+  };
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -145,26 +196,35 @@ const CategoryDetails = () => {
                 </ul>
               </div>
               
-              <div className="bg-card p-6 rounded-lg shadow-sm mb-8">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">{t('ranking.title')}</h2>
-                  <LiveRankingBadge isLive={isLive} lastUpdated={lastSnapshot} />
+              {/* Professional Sports-style Ranking */}
+              <div className="bg-card rounded-lg shadow-sm overflow-hidden">
+                <div className="bg-primary text-primary-foreground px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold uppercase tracking-wide">
+                      {category.name.toUpperCase()} - {t('ranking.title').toUpperCase()}
+                    </h2>
+                    <LiveRankingBadge isLive={isLive} lastUpdated={lastSnapshot} />
+                  </div>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="divide-y divide-border">
                   {items.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                       <p>No items in this category yet.</p>
                     </div>
                   ) : (
                     items.map((item, index) => {
-                      const movement = getMovement(item.id);
                       const rank = index + 1;
+                      const isVoted = userVotedItemId === item.id;
+                      
                       return (
-                        <div key={item.id} className="flex items-start gap-4 p-4 bg-muted/30 rounded-lg border border-border hover:border-primary/30 transition-colors">
+                        <div 
+                          key={item.id} 
+                          className={`flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors ${isVoted ? 'bg-primary/5' : ''}`}
+                        >
                           {/* Rank Number */}
-                          <div className="flex flex-col items-center min-w-[60px]">
-                            <span className={`text-2xl font-bold ${
+                          <div className="flex items-center gap-3 min-w-[80px]">
+                            <span className={`text-2xl font-bold tabular-nums ${
                               rank === 1 ? 'text-yellow-500' : 
                               rank === 2 ? 'text-gray-400' : 
                               rank === 3 ? 'text-amber-600' : 
@@ -172,18 +232,40 @@ const CategoryDetails = () => {
                             }`}>
                               {String(rank).padStart(2, '0')}
                             </span>
-                            {movement && (
-                              <RankingMovementBadge 
-                                movement={movement.movement} 
-                                previousRank={movement.previousRank}
-                                currentRank={rank}
-                                size="sm"
-                              />
+                            {renderMovement(item.id, rank)}
+                          </div>
+                          
+                          {/* Item Image */}
+                          <div className="w-16 h-12 rounded overflow-hidden flex-shrink-0 border border-border">
+                            <img 
+                              src={item.image_url || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=200'} 
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          
+                          {/* Item Info */}
+                          <div className="flex-grow min-w-0">
+                            <h3 className="font-bold text-foreground truncate">
+                              {item.name}
+                            </h3>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground truncate">
+                                {item.description}
+                              </p>
                             )}
                           </div>
                           
-                          {/* Item Content */}
-                          <div className="flex-grow">
+                          {/* Vote Section */}
+                          <div className="flex items-center gap-4 flex-shrink-0">
+                            <div className="text-right">
+                              <span className="text-lg font-bold text-foreground">
+                                {item.vote_count}
+                              </span>
+                              <span className="text-xs text-muted-foreground ml-1">
+                                {t('vote.votes')}
+                              </span>
+                            </div>
                             <ItemCard 
                               item={{
                                 id: item.id,
@@ -210,7 +292,7 @@ const CategoryDetails = () => {
                               totalVotesInCategory={totalVotes}
                               voteDisplayMode={settings.voteDisplayMode}
                               isLoggedIn={!!user}
-                              hideRank={true}
+                              compact={true}
                             />
                           </div>
                         </div>
@@ -220,7 +302,7 @@ const CategoryDetails = () => {
                 </div>
                 
                 {/* Affiliate Disclosure */}
-                <div className="mt-6 pt-4 border-t border-border">
+                <div className="px-6 py-4 border-t border-border bg-muted/30">
                   <p className="text-xs text-muted-foreground italic">
                     {t('footer.affiliate')}
                   </p>
@@ -253,6 +335,25 @@ const CategoryDetails = () => {
                     <span className="ml-2 font-medium capitalize">
                       {settings.voteDisplayMode}
                     </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Movement Legend */}
+              <div className="bg-card p-4 rounded-lg shadow-sm">
+                <h2 className="font-bold text-sm mb-3">Movement Legend</h2>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <ArrowUp className="h-3 w-3 text-green-600" />
+                    <span className="text-muted-foreground">Rank improved</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ArrowDown className="h-3 w-3 text-red-600" />
+                    <span className="text-muted-foreground">Rank dropped</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Minus className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">No change</span>
                   </div>
                 </div>
               </div>
