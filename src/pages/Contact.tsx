@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { formatMarkdownSafe } from '@/lib/safeMarkdown';
 
 const Contact = () => {
   const { language, t } = useTranslation();
@@ -86,7 +87,7 @@ const Contact = () => {
       <main className="flex-grow py-10 px-4">
         <div className="container mx-auto max-w-3xl">
           <article className="prose prose-lg dark:prose-invert max-w-none mb-8">
-            <div dangerouslySetInnerHTML={{ __html: formatMarkdown(content?.content || '') }} />
+            <div dangerouslySetInnerHTML={{ __html: formatMarkdownSafe(content?.content || '') }} />
           </article>
 
           <Card>
@@ -163,16 +164,5 @@ const Contact = () => {
     </div>
   );
 };
-
-function formatMarkdown(text: string): string {
-  return text
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-    .replace(/\*(.*)\*/gim, '<em>$1</em>')
-    .replace(/^\- (.*$)/gim, '<li>$1</li>')
-    .replace(/\n/gim, '<br />');
-}
 
 export default Contact;
