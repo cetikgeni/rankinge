@@ -38,27 +38,30 @@ Return ONLY the description text, nothing else.`;
 
       case "category_items":
         systemPrompt = `You are an expert at suggesting items for voting categories.
-Generate popular and relevant items for the given category.
-Return ONLY a JSON array of 5 items, each with "name" and "description" fields.
-Example: [{"name": "Item Name", "description": "Brief description of the item"}]`;
+Return ONLY a JSON array of items with this structure:
+[{"name":"Item Name","description":"Brief description","image_keywords":["k1","k2"],"affiliate_query":"optional search query"}]
+Rules:
+- Do NOT include image URLs.
+- image_keywords MUST be generic and non-branded.
+- affiliate_query (if present) should be a generic search phrase, not a brand.`;
         userPrompt = `Suggest items for the category: "${prompt}"`;
         break;
 
       case "complete_category":
         systemPrompt = `You are an expert at creating complete voting categories.
-Based on a single keyword or topic, generate a complete category with name, description, and items.
 Return ONLY a valid JSON object with this exact structure:
 {
   "name": "Category Name",
   "description": "Category description (2-3 sentences)",
+  "image_keywords": ["keyword1", "keyword2", "keyword3"],
   "items": [
-    {"name": "Item 1", "description": "Description of item 1"},
-    {"name": "Item 2", "description": "Description of item 2"},
-    {"name": "Item 3", "description": "Description of item 3"},
-    {"name": "Item 4", "description": "Description of item 4"},
-    {"name": "Item 5", "description": "Description of item 5"}
+    {"name": "Item 1", "description": "Description", "image_keywords": ["k1","k2"], "affiliate_query": "optional search query"}
   ]
-}`;
+}
+Rules:
+- Do NOT include image URLs.
+- image_keywords MUST be generic and non-branded.
+- items length should be 5-10 when asked.`;
         userPrompt = `Create a complete voting category for: "${prompt}"`;
         break;
 
@@ -69,11 +72,24 @@ Return ONLY a JSON array of 5 title suggestions, nothing else.`;
         break;
 
       case "blog_content":
-        systemPrompt = `You are an expert content writer. Write engaging blog content in Markdown format.
-Include proper headings (##, ###), paragraphs, and formatting.
-Write approximately 300-500 words of high-quality content.
-Return ONLY the markdown content, nothing else.`;
-        userPrompt = `Write a blog post about: "${prompt}"${context ? `\n\nAdditional context: ${context}` : ""}`;
+        systemPrompt = `You are an expert SEO content writer.
+Return ONLY valid JSON with this exact structure (no markdown fences):
+{
+  "title": "English title",
+  "title_id": "Indonesian title or null",
+  "content": "Markdown content (English)",
+  "content_id": "Markdown content (Indonesian) or null",
+  "excerpt": "English excerpt under 160 chars",
+  "excerpt_id": "Indonesian excerpt under 160 chars or null",
+  "meta_title": "SEO meta title under 60 chars (English)",
+  "meta_description": "SEO meta description under 160 chars (English)",
+  "image_keywords": ["keyword1", "keyword2", "keyword3"]
+}
+Rules:
+- Keep content ~300-500 words.
+- If the request language is English only, set *_id fields to null.
+- Do NOT include any image URLs. Only image_keywords.`;
+        userPrompt = `Write a blog post about: "${prompt}"${context ? `\n\nAdditional context: ${JSON.stringify(context)}` : ""}`;
         break;
 
       case "blog_excerpt":
@@ -129,7 +145,7 @@ Return ONLY the excerpt text, nothing else.`;
 
     // Try to parse as JSON if expected
     let result = content;
-    if (["category_name", "category_items", "complete_category", "blog_title"].includes(type)) {
+    if (["category_name", "category_items", "complete_category", "blog_title", "blog_content"].includes(type)) {
       try {
         // Extract JSON from the response (handle markdown code blocks)
         const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];

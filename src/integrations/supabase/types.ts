@@ -49,7 +49,9 @@ export type Database = {
           excerpt: string | null
           excerpt_id: string | null
           id: string
+          image_source: string | null
           is_published: boolean | null
+          is_seed_content: boolean
           meta_description: string | null
           meta_title: string | null
           og_description: string | null
@@ -70,7 +72,9 @@ export type Database = {
           excerpt?: string | null
           excerpt_id?: string | null
           id?: string
+          image_source?: string | null
           is_published?: boolean | null
+          is_seed_content?: boolean
           meta_description?: string | null
           meta_title?: string | null
           og_description?: string | null
@@ -91,7 +95,9 @@ export type Database = {
           excerpt?: string | null
           excerpt_id?: string | null
           id?: string
+          image_source?: string | null
           is_published?: boolean | null
+          is_seed_content?: boolean
           meta_description?: string | null
           meta_title?: string | null
           og_description?: string | null
@@ -104,6 +110,36 @@ export type Database = {
         }
         Relationships: []
       }
+      bulk_generation_logs: {
+        Row: {
+          admin_user_id: string | null
+          created_at: string
+          id: string
+          message: string | null
+          run_id: string
+          status: string
+          step: string
+        }
+        Insert: {
+          admin_user_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          run_id?: string
+          status: string
+          step: string
+        }
+        Update: {
+          admin_user_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          run_id?: string
+          status?: string
+          step?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           category_group: string | null
@@ -111,8 +147,10 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          image_source: string | null
           image_url: string | null
           is_approved: boolean | null
+          is_seed_content: boolean
           name: string
           parent_id: string | null
           updated_at: string
@@ -124,8 +162,10 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          image_source?: string | null
           image_url?: string | null
           is_approved?: boolean | null
+          is_seed_content?: boolean
           name: string
           parent_id?: string | null
           updated_at?: string
@@ -137,8 +177,10 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          image_source?: string | null
           image_url?: string | null
           is_approved?: boolean | null
+          is_seed_content?: boolean
           name?: string
           parent_id?: string | null
           updated_at?: string
@@ -188,9 +230,12 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          image_source: string | null
           image_url: string | null
+          is_seed_content: boolean
           name: string
           product_url: string | null
+          seed_weight: number | null
           updated_at: string
           vote_count: number | null
         }
@@ -200,9 +245,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_source?: string | null
           image_url?: string | null
+          is_seed_content?: boolean
           name: string
           product_url?: string | null
+          seed_weight?: number | null
           updated_at?: string
           vote_count?: number | null
         }
@@ -212,9 +260,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_source?: string | null
           image_url?: string | null
+          is_seed_content?: boolean
           name?: string
           product_url?: string | null
+          seed_weight?: number | null
           updated_at?: string
           vote_count?: number | null
         }
