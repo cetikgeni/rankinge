@@ -1,55 +1,508 @@
-import { useState } from 'react';
-import { Loader2, Sparkles, AlertTriangle, CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { useTranslation } from '@/contexts/LanguageContext';
-import { useAIGenerate } from '@/hooks/useAIGenerate';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import Navbar from '@/components/Navbar';
-import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { useMemo, useState } from "react";
+import { Loader2, Sparkles, AlertTriangle, CheckCircle, ListChecks } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "@/contexts/LanguageContext";
+import { useAIGenerate } from "@/hooks/useAIGenerate";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import Navbar from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
+import { Navigate } from "react-router-dom";
 
-interface GenerationOptions {
+type LanguageMode = "en" | "id" | "both";
+
+type BulkOptions = {
   generateCategories: boolean;
+  generateSubCategories: boolean;
   generateItems: boolean;
   generateBlog: boolean;
   seedRanking: boolean;
-}
+  attachImages: boolean;
+  generateAffiliateLinks: boolean;
+};
 
-interface QuantitySettings {
+type BulkQuantities = {
   categories: number;
+  subCategoriesPerCategory: number;
   itemsPerCategory: number;
   blogArticles: number;
+};
+
+type Progress = {
+  categoriesDone: number;
+  categoriesTotal: number;
+  itemsDone: number;
+  itemsTotal: number;
+  imagesDone: number;
+  imagesTotal: number;
+  blogsDone: number;
+  blogsTotal: number;
+};
+
+type LogLine = {
+  ts: string;
+  step: string;
+  status: "success" | "failure" | "info";
+  message: string;
+};
+
+function clampInt(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, Math.floor(value)));
+}
+
+async function fetchOpenverseImageUrl(keywords: string[]): Promise<string | null> {
+  const q = encodeURIComponent(keywords.filter(Boolean).slice(0, 4).join(" "));
+  if (!q) return null;
+
+  // Openverse is CC search; no API key needed.
+  const url = `https://api.openverse.org/v1/images/?q=${q}&page_size=1&license_type=commercial`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const first = data?.results?.[0];
+  const imageUrl = first?.url || first?.thumbnail || null;
+  return typeof imageUrl === "string" ? imageUrl : null;
+}
+
+function buildUnsplashSourceUrl(keywords: string[]): string | null {
+  const q = keywords.filter(Boolean).slice(0, 3).join(",").trim();
+  if (!q) return null;
+  // This endpoint returns a real image (no API key), still from Unsplash.
+  return `https://source.unsplash.com/featured/1200x800?${encodeURIComponent(q)}`;
+}
+
+async function resolveFreeImage(keywords: string[]): Promise<{ url: string; source: string } | null> {
+  const openverse = await fetchOpenverseImageUrl(keywords);
+  if (openverse) return { url: openverse, source: "openverse" };
+
+  const unsplash = buildUnsplashSourceUrl(keywords);
+  if (unsplash) return { url: unsplash, source: "unsplash" };
+
+  return null;
 }
 
 const AIContentGenerator = () => {
   const { t } = useTranslation();
   const { user, isAdmin, isLoading: authLoading } = useAuth();
   const { generate, isGenerating } = useAIGenerate();
-  
-  const [options, setOptions] = useState<GenerationOptions>({
+
+  // Existing single-mode state kept minimal
+  const [language, setLanguage] = useState<LanguageMode>("en");
+  const [categoryGroup, setCategoryGroup] = useState("Technology");
+
+  // Bulk mode state
+  const [bulkOptions, setBulkOptions] = useState<BulkOptions>({
     generateCategories: true,
+    generateSubCategories: false,
     generateItems: true,
     generateBlog: false,
     seedRanking: false,
+    attachImages: true,
+    generateAffiliateLinks: false,
   });
-  
-  const [quantities, setQuantities] = useState<QuantitySettings>({
-    categories: 3,
+
+  const [bulkQty, setBulkQty] = useState<BulkQuantities>({
+    categories: 10,
+    subCategoriesPerCategory: 0,
     itemsPerCategory: 5,
-    blogArticles: 2,
+    blogArticles: 0,
   });
-  
-  const [language, setLanguage] = useState<'en' | 'id' | 'both'>('en');
-  const [categoryGroup, setCategoryGroup] = useState('Technology');
-  const [generationStep, setGenerationStep] = useState<string | null>(null);
+
+  const [confirmInsert, setConfirmInsert] = useState(false);
+  const [progress, setProgress] = useState<Progress>({
+    categoriesDone: 0,
+    categoriesTotal: 0,
+    itemsDone: 0,
+    itemsTotal: 0,
+    imagesDone: 0,
+    imagesTotal: 0,
+    blogsDone: 0,
+    blogsTotal: 0,
+  });
+  const [logLines, setLogLines] = useState<LogLine[]>([]);
+  const [activeStep, setActiveStep] = useState<string | null>(null);
+
+  const categoryGroups = [
+    "Technology",
+    "Food & Beverages",
+    "Fashion & Apparel",
+    "Entertainment",
+    "Sports & Fitness",
+    "Home & Living",
+  ];
+
+  const bulkSummary = useMemo(() => {
+    const cats = bulkOptions.generateCategories ? bulkQty.categories : 0;
+    const items = bulkOptions.generateItems && bulkOptions.generateCategories ? bulkQty.categories * bulkQty.itemsPerCategory : 0;
+    const blogs = bulkOptions.generateBlog ? bulkQty.blogArticles : 0;
+    const seed = bulkOptions.seedRanking && bulkOptions.generateItems && bulkOptions.generateCategories;
+    const attachImages = bulkOptions.attachImages;
+
+    return { cats, items, blogs, seed, attachImages };
+  }, [bulkOptions, bulkQty]);
+
+  const pushLog = async (runId: string, step: string, status: LogLine["status"], message: string) => {
+    const entry: LogLine = {
+      ts: new Date().toISOString(),
+      step,
+      status,
+      message,
+    };
+    setLogLines((p) => [entry, ...p]);
+
+    // Best-effort DB log; never block the run.
+    try {
+      await supabase.from("bulk_generation_logs").insert({
+        run_id: runId,
+        admin_user_id: user?.id ?? null,
+        step,
+        status,
+        message,
+      });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const setQty = (key: keyof BulkQuantities, next: number) => {
+    const limits: Record<keyof BulkQuantities, { min: number; max: number }> = {
+      categories: { min: 1, max: 50 },
+      subCategoriesPerCategory: { min: 0, max: 20 },
+      itemsPerCategory: { min: 1, max: 20 },
+      blogArticles: { min: 0, max: 20 },
+    };
+    const { min, max } = limits[key];
+    setBulkQty((p) => ({ ...p, [key]: clampInt(next, min, max) }));
+  };
+
+  const toggleBulkOption = (key: keyof BulkOptions) => {
+    setBulkOptions((p) => {
+      const next = { ...p, [key]: !p[key] };
+      // Rules: if Categories not selected, disable Items & Seed.
+      if (key === "generateCategories" && next.generateCategories === false) {
+        next.generateItems = false;
+        next.seedRanking = false;
+      }
+      // Seed requires items.
+      if (key === "generateItems" && next.generateItems === false) {
+        next.seedRanking = false;
+      }
+      return next;
+    });
+  };
+
+  const generateSeedWeights = (count: number) => {
+    // Simple percentage-like weights (sum roughly 100) but stored as integers.
+    // Example for 4 items: [40,30,20,10]
+    const base = Array.from({ length: count }, (_, i) => count - i);
+    const sum = base.reduce((a, b) => a + b, 0);
+    return base.map((v) => Math.round((v / sum) * 100));
+  };
+
+  const startBulkGeneration = async () => {
+    if (!user?.id) return;
+
+    if (!bulkOptions.generateCategories && !bulkOptions.generateBlog) {
+      toast.error("Pilih minimal 1 tipe konten.");
+      return;
+    }
+
+    if (!confirmInsert) {
+      toast.error("Centang konfirmasi sebelum menjalankan bulk generation.");
+      return;
+    }
+
+    const runId = crypto.randomUUID();
+    setLogLines([]);
+    setActiveStep(null);
+
+    setProgress({
+      categoriesDone: 0,
+      categoriesTotal: bulkSummary.cats,
+      itemsDone: 0,
+      itemsTotal: bulkSummary.items,
+      imagesDone: 0,
+      imagesTotal: bulkSummary.attachImages ? bulkSummary.items : 0,
+      blogsDone: 0,
+      blogsTotal: bulkSummary.blogs,
+    });
+
+    await pushLog(runId, "init", "info", `Start bulk generation (run ${runId})`);
+
+    // Keep local references to created IDs
+    const createdCategoryIds: { id: string; name: string; imageKeywords: string[] }[] = [];
+    const createdItemIds: { id: string; categoryId: string; itemName: string; imageKeywords: string[] }[] = [];
+
+    // 1) Categories
+    if (bulkOptions.generateCategories) {
+      setActiveStep("Generating categories");
+      await pushLog(runId, "categories", "info", `Generating ${bulkQty.categories} categories...`);
+
+      // Generate in small batches (5 names per call)
+      const names: string[] = [];
+      while (names.length < bulkQty.categories) {
+        const res = await generate(
+          "category_name",
+          `Category group: ${categoryGroup}. Language: ${language === "both" ? "English + Indonesian" : language}. Generate 5 unique category names for a ranking site.`,
+          { categoryGroup, language }
+        );
+
+        const batch = Array.isArray(res) ? res : [];
+        for (const n of batch) {
+          if (typeof n === "string" && n.trim()) names.push(n.trim());
+        }
+        if (batch.length === 0) break;
+      }
+
+      const uniqueNames = Array.from(new Set(names)).slice(0, bulkQty.categories);
+
+      for (const name of uniqueNames) {
+        try {
+          // Get description
+          const desc = await generate(
+            "category_description",
+            name,
+            { language }
+          );
+
+          // Ask for a complete category to get image keywords + items structure, but we won't insert items here yet.
+          const cc = await generate(
+            "complete_category",
+            `${name}. Please keep items count around ${bulkQty.itemsPerCategory}. Category group: ${categoryGroup}. Language: ${language === "both" ? "English + Indonesian" : language}.`,
+            { itemsPerCategory: bulkQty.itemsPerCategory, language, categoryGroup }
+          );
+
+          const imageKeywords: string[] = Array.isArray((cc as any)?.image_keywords)
+            ? (cc as any).image_keywords
+            : [];
+
+          const { data: categoryData, error: catError } = await supabase
+            .from("categories")
+            .insert({
+              name,
+              description: typeof desc === "string" ? desc : (cc as any)?.description ?? "",
+              category_group: categoryGroup,
+              is_approved: true,
+              image_url: null,
+              image_source: null,
+              is_seed_content: true,
+              created_by: user.id,
+            })
+            .select("id,name")
+            .single();
+
+          if (catError || !categoryData) {
+            await pushLog(runId, "categories", "failure", `Failed insert category "${name}": ${catError?.message ?? "unknown"}`);
+            continue;
+          }
+
+          createdCategoryIds.push({ id: categoryData.id, name: categoryData.name, imageKeywords });
+          setProgress((p) => ({ ...p, categoriesDone: p.categoriesDone + 1 }));
+          await pushLog(runId, "categories", "success", `Created category: ${categoryData.name}`);
+        } catch (e) {
+          await pushLog(runId, "categories", "failure", `Category generation failed for "${name}"`);
+        }
+      }
+    }
+
+    // 2) Sub-categories (stored as category_group)
+    if (bulkOptions.generateSubCategories && bulkOptions.generateCategories && bulkQty.subCategoriesPerCategory > 0) {
+      setActiveStep("Generating sub-categories");
+      await pushLog(runId, "sub_categories", "info", "Generating sub-categories (category_group values)...");
+
+      for (const cat of createdCategoryIds) {
+        try {
+          // Minimal token: ask for group labels
+          const subNames = await generate(
+            "category_name",
+            `For category: ${cat.name}. Generate 5 sub-category group labels (short). Language: ${language === "both" ? "English + Indonesian" : language}.`,
+            { categoryName: cat.name, language }
+          );
+          const subs = (Array.isArray(subNames) ? subNames : []).filter((x) => typeof x === "string") as string[];
+          const chosen = subs.slice(0, bulkQty.subCategoriesPerCategory);
+
+          // Store chosen subcategories by updating the category_group to include parent group + sub label (simple, reversible)
+          // NOTE: We keep it minimal: one category gets one group string, so we pick the first if exists.
+          const nextGroup = chosen[0] ? `${categoryGroup} / ${chosen[0]}` : categoryGroup;
+          await supabase.from("categories").update({ category_group: nextGroup }).eq("id", cat.id);
+          await pushLog(runId, "sub_categories", "success", `Updated category_group for ${cat.name} → ${nextGroup}`);
+        } catch {
+          await pushLog(runId, "sub_categories", "failure", `Failed generating sub-categories for ${cat.name}`);
+        }
+      }
+    }
+
+    // 3) Items per category
+    if (bulkOptions.generateItems && bulkOptions.generateCategories) {
+      setActiveStep("Generating items");
+      await pushLog(runId, "items", "info", `Generating items (${bulkQty.itemsPerCategory}/category)...`);
+
+      for (const cat of createdCategoryIds) {
+        try {
+          const res = await generate(
+            "category_items",
+            `${cat.name}. Please generate ${bulkQty.itemsPerCategory} items. Language: ${language === "both" ? "English + Indonesian" : language}.`,
+            { categoryId: cat.id, count: bulkQty.itemsPerCategory, language }
+          );
+
+          const items = Array.isArray(res) ? res : [];
+          const slice = items.slice(0, bulkQty.itemsPerCategory);
+
+          for (const it of slice) {
+            const itemName = (it as any)?.name || "Untitled Item";
+            const itemDesc = (it as any)?.description || "";
+            const imageKeywords: string[] = Array.isArray((it as any)?.image_keywords) ? (it as any).image_keywords : [];
+
+            // Affiliate links are search-style only (optional)
+            const affiliateQuery = (it as any)?.affiliate_query;
+            const affiliateUrl = bulkOptions.generateAffiliateLinks && typeof affiliateQuery === "string" && affiliateQuery.trim()
+              ? `https://shopee.co.id/search?keyword=${encodeURIComponent(affiliateQuery.trim())}`
+              : null;
+
+            const { data: itemData, error: itemErr } = await supabase
+              .from("items")
+              .insert({
+                category_id: cat.id,
+                name: itemName,
+                description: itemDesc,
+                image_url: null,
+                image_source: null,
+                seed_weight: null,
+                vote_count: 0, // NEVER seed votes
+                affiliate_url: affiliateUrl,
+                is_seed_content: true,
+              })
+              .select("id")
+              .single();
+
+            if (itemErr || !itemData) {
+              await pushLog(runId, "items", "failure", `Failed insert item "${itemName}" in ${cat.name}: ${itemErr?.message ?? "unknown"}`);
+              continue;
+            }
+
+            createdItemIds.push({ id: itemData.id, categoryId: cat.id, itemName, imageKeywords });
+            setProgress((p) => ({ ...p, itemsDone: p.itemsDone + 1 }));
+          }
+
+          await pushLog(runId, "items", "success", `Inserted items for category: ${cat.name}`);
+        } catch {
+          await pushLog(runId, "items", "failure", `Item generation failed for category: ${cat.name}`);
+        }
+      }
+    }
+
+    // 4) Seed weights (bootstrap only)
+    if (bulkOptions.seedRanking && bulkOptions.generateItems && bulkOptions.generateCategories) {
+      setActiveStep("Generating seed weights");
+      await pushLog(runId, "seed", "info", "Generating initial ranking seed (seed_weight only, no votes)...");
+
+      const byCategory = new Map<string, { id: string; itemName: string }[]>();
+      for (const it of createdItemIds) {
+        const arr = byCategory.get(it.categoryId) ?? [];
+        arr.push({ id: it.id, itemName: it.itemName });
+        byCategory.set(it.categoryId, arr);
+      }
+
+      for (const [categoryId, items] of byCategory.entries()) {
+        const weights = generateSeedWeights(items.length);
+        for (let i = 0; i < items.length; i++) {
+          try {
+            await supabase.from("items").update({ seed_weight: weights[i] }).eq("id", items[i].id);
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      await pushLog(runId, "seed", "success", "Seed weights saved to items.seed_weight" );
+    }
+
+    // 5) Blog content
+    if (bulkOptions.generateBlog && bulkQty.blogArticles > 0) {
+      setActiveStep("Generating blog");
+      await pushLog(runId, "blog", "info", `Generating ${bulkQty.blogArticles} blog articles...`);
+
+      for (let i = 0; i < bulkQty.blogArticles; i++) {
+        try {
+          const topic = `${categoryGroup} trends and rankings`;
+          const blog = await generate(
+            "blog_content",
+            topic,
+            { language, categoryGroup }
+          );
+
+          const title = (blog as any)?.title ?? `Untitled Article ${Date.now()}`;
+          const slug = title
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .slice(0, 100);
+
+          const { error: blogErr } = await supabase.from("blog_posts").insert({
+            title,
+            title_id: (blog as any)?.title_id ?? null,
+            slug,
+            content: (blog as any)?.content ?? "",
+            content_id: (blog as any)?.content_id ?? null,
+            excerpt: (blog as any)?.excerpt ?? "",
+            excerpt_id: (blog as any)?.excerpt_id ?? null,
+            meta_title: (blog as any)?.meta_title ?? title,
+            meta_description: (blog as any)?.meta_description ?? (blog as any)?.excerpt ?? "",
+            is_published: false,
+            cover_image_url: null,
+            image_source: null,
+            is_seed_content: true,
+          });
+
+          if (blogErr) {
+            await pushLog(runId, "blog", "failure", `Failed insert blog: ${blogErr.message}`);
+          } else {
+            setProgress((p) => ({ ...p, blogsDone: p.blogsDone + 1 }));
+            await pushLog(runId, "blog", "success", `Created blog: ${title}`);
+          }
+        } catch {
+          await pushLog(runId, "blog", "failure", "Blog generation failed" );
+        }
+      }
+    }
+
+    // 6) Attach images (best-effort, async-ish but sequential to keep simple)
+    if (bulkOptions.attachImages && createdItemIds.length > 0) {
+      setActiveStep("Attaching images");
+      await pushLog(runId, "images", "info", "Attaching images (Openverse → Unsplash fallback)..." );
+
+      for (const it of createdItemIds) {
+        try {
+          const found = await resolveFreeImage(it.imageKeywords);
+          if (found) {
+            await supabase
+              .from("items")
+              .update({ image_url: found.url, image_source: found.source })
+              .eq("id", it.id);
+          }
+          setProgress((p) => ({ ...p, imagesDone: p.imagesDone + 1 }));
+        } catch {
+          setProgress((p) => ({ ...p, imagesDone: p.imagesDone + 1 }));
+          // skip
+        }
+      }
+
+      await pushLog(runId, "images", "success", "Image attachment completed (skips allowed)" );
+    }
+
+    setActiveStep(null);
+    toast.success("Bulk generation selesai.");
+    await pushLog(runId, "done", "success", "Bulk generation finished" );
+  };
 
   if (authLoading) {
     return (
@@ -63,369 +516,319 @@ const AIContentGenerator = () => {
     return <Navigate to="/admin" replace />;
   }
 
-  const handleOptionChange = (key: keyof GenerationOptions) => {
-    setOptions(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const handleQuantityChange = (key: keyof QuantitySettings, value: number) => {
-    setQuantities(prev => ({ ...prev, [key]: Math.max(1, Math.min(10, value)) }));
-  };
-
-  const generateContent = async () => {
-    try {
-      // Step 1: Generate categories if selected
-      if (options.generateCategories) {
-        setGenerationStep('Generating categories...');
-        
-        const categoriesResult = await generate('complete_category', 
-          `Generate ${quantities.categories} unique category ideas for a ranking website. Category group: ${categoryGroup}. Language: ${language === 'both' ? 'English with Indonesian translation' : language}`,
-          { count: quantities.categories, categoryGroup, language }
-        );
-        
-        if (!categoriesResult) throw new Error('Failed to generate categories');
-        
-        // Parse and store categories
-        const categories = Array.isArray(categoriesResult) ? categoriesResult : [categoriesResult];
-        
-        for (const cat of categories) {
-          // Insert category
-          const { data: categoryData, error: catError } = await supabase
-            .from('categories')
-            .insert({
-              name: cat.name || cat.title || 'Untitled Category',
-              description: cat.description || '',
-              category_group: categoryGroup,
-              is_approved: true,
-              image_url: getDefaultImageForCategory(categoryGroup),
-            })
-            .select()
-            .single();
-          
-          if (catError) {
-            console.error('Error creating category:', catError);
-            continue;
-          }
-          
-          // Step 2: Generate items for this category if selected
-          if (options.generateItems && categoryData) {
-            setGenerationStep(`Generating items for ${categoryData.name}...`);
-            
-            const itemsResult = await generate('category_items',
-              `Generate ${quantities.itemsPerCategory} items/products for the category "${categoryData.name}". Language: ${language === 'both' ? 'English with Indonesian translation' : language}`,
-              { categoryId: categoryData.id, count: quantities.itemsPerCategory, language }
-            );
-            
-            if (itemsResult) {
-              const items = Array.isArray(itemsResult) ? itemsResult : [itemsResult];
-              
-              for (const item of items) {
-                await supabase.from('items').insert({
-                  category_id: categoryData.id,
-                  name: item.name || 'Untitled Item',
-                  description: item.description || '',
-                  image_url: getDefaultImageForCategory(categoryGroup),
-                  vote_count: options.seedRanking ? Math.floor(Math.random() * 50) + 10 : 0,
-                  product_url: item.product_url || null,
-                });
-              }
-            }
-          }
-        }
-      }
-      
-      // Step 3: Generate blog content if selected
-      if (options.generateBlog) {
-        setGenerationStep('Generating blog articles...');
-        
-        for (let i = 0; i < quantities.blogArticles; i++) {
-          const blogResult = await generate('blog_content',
-            `Write an SEO-optimized blog article about ${categoryGroup} topics. Language: ${language === 'both' ? 'English with Indonesian translation' : language}`,
-            { categoryGroup, language }
-          );
-          
-          if (blogResult) {
-            const slug = generateSlug(blogResult.title || `article-${Date.now()}`);
-            
-            await supabase.from('blog_posts').insert({
-              title: blogResult.title || 'Untitled Article',
-              title_id: language === 'both' ? blogResult.title_id : null,
-              slug,
-              content: blogResult.content || '',
-              content_id: language === 'both' ? blogResult.content_id : null,
-              excerpt: blogResult.excerpt || '',
-              excerpt_id: language === 'both' ? blogResult.excerpt_id : null,
-              meta_title: blogResult.title || '',
-              meta_description: blogResult.excerpt || '',
-              is_published: false,
-              cover_image_url: getDefaultImageForCategory(categoryGroup),
-            });
-          }
-        }
-      }
-      
-      setGenerationStep(null);
-      toast.success(t('ai.success'));
-      
-    } catch (error) {
-      console.error('Generation error:', error);
-      setGenerationStep(null);
-      toast.error(t('ai.error'));
-    }
-  };
-
-  const generateSlug = (title: string): string => {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .slice(0, 100);
-  };
-
-  const getDefaultImageForCategory = (group: string): string => {
-    const images: Record<string, string> = {
-      'Technology': 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop',
-      'Food & Beverages': 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&h=600&fit=crop',
-      'Fashion & Apparel': 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=800&h=600&fit=crop',
-      'Entertainment': 'https://images.unsplash.com/photo-1603190287605-e6ade32fa852?w=800&h=600&fit=crop',
-      'Sports & Fitness': 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&h=600&fit=crop',
-      'Home & Living': 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-    };
-    return images[group] || images['Technology'];
-  };
-
-  const categoryGroups = [
-    'Technology',
-    'Food & Beverages',
-    'Fashion & Apparel',
-    'Entertainment',
-    'Sports & Fitness',
-    'Home & Living',
-  ];
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      
+
       <main className="flex-grow py-10 px-4">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-5xl">
           <div className="flex items-center gap-3 mb-8">
             <Sparkles className="h-8 w-8 text-primary" />
             <div>
-              <h1 className="text-3xl font-bold text-foreground">{t('ai.generator')}</h1>
-              <p className="text-muted-foreground">Generate categories, items, and blog content safely</p>
+              <h1 className="text-3xl font-bold text-foreground">{t("ai.generator")}</h1>
+              <p className="text-muted-foreground">Bulk generator: token-safe, no AI images, no fake votes</p>
             </div>
           </div>
 
-          {/* Warning Banner */}
-          <Alert className="mb-6 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800 dark:text-amber-400">Important Guidelines</AlertTitle>
-            <AlertDescription className="text-amber-700 dark:text-amber-300">
+          <Alert className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Aturan penting</AlertTitle>
+            <AlertDescription>
               <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>AI generates TEXT content only - images are fetched from Unsplash</li>
-                <li>Seed rankings are separate from real user votes</li>
-                <li>Generated content will be marked as seed content</li>
-                <li>Review content before publishing to production</li>
+                <li>AI hanya membuat teks + keyword gambar (tanpa URL gambar, tanpa base64).</li>
+                <li>Seed ranking disimpan sebagai <code>seed_weight</code> (bukan vote) dan tidak memicu history.</li>
+                <li>Gambar diambil dari sumber gratis (Openverse/Unsplash). Jika tidak ketemu, akan di-skip.</li>
               </ul>
             </AlertDescription>
           </Alert>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Content Type Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Content Types</CardTitle>
-                <CardDescription>Select what content to generate</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="categories" 
-                    checked={options.generateCategories}
-                    onCheckedChange={() => handleOptionChange('generateCategories')}
-                  />
-                  <Label htmlFor="categories">{t('ai.generateCategories')}</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="items" 
-                    checked={options.generateItems}
-                    onCheckedChange={() => handleOptionChange('generateItems')}
-                    disabled={!options.generateCategories}
-                  />
-                  <Label htmlFor="items" className={!options.generateCategories ? 'opacity-50' : ''}>
-                    {t('ai.generateItems')}
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="blog" 
-                    checked={options.generateBlog}
-                    onCheckedChange={() => handleOptionChange('generateBlog')}
-                  />
-                  <Label htmlFor="blog">{t('ai.generateBlog')}</Label>
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="seed" 
-                    checked={options.seedRanking}
-                    onCheckedChange={() => handleOptionChange('seedRanking')}
-                    disabled={!options.generateItems}
-                  />
-                  <Label htmlFor="seed" className={!options.generateItems ? 'opacity-50' : ''}>
-                    {t('ai.seedRanking')}
-                  </Label>
-                </div>
-                
-                {options.seedRanking && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 pl-6">
-                    {t('ai.seedWarning')}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+          <Tabs defaultValue="bulk" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="bulk">Bulk Mode</TabsTrigger>
+              <TabsTrigger value="single">Single Mode</TabsTrigger>
+            </TabsList>
 
-            {/* Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Settings</CardTitle>
-                <CardDescription>Configure generation parameters</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Category Group</Label>
-                  <Select value={categoryGroup} onValueChange={setCategoryGroup}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoryGroups.map(group => (
-                        <SelectItem key={group} value={group}>{group}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>{t('ai.language')}</Label>
-                  <Select value={language} onValueChange={(v: 'en' | 'id' | 'both') => setLanguage(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="id">Indonesian</SelectItem>
-                      <SelectItem value="both">Both (Bilingual)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <Separator />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Categories</Label>
-                    <Input 
-                      type="number" 
-                      min={1} 
-                      max={10}
-                      value={quantities.categories}
-                      onChange={(e) => handleQuantityChange('categories', parseInt(e.target.value) || 1)}
-                      disabled={!options.generateCategories}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Items/Category</Label>
-                    <Input 
-                      type="number" 
-                      min={1} 
-                      max={10}
-                      value={quantities.itemsPerCategory}
-                      onChange={(e) => handleQuantityChange('itemsPerCategory', parseInt(e.target.value) || 1)}
-                      disabled={!options.generateItems}
-                    />
-                  </div>
-                </div>
-                
-                {options.generateBlog && (
-                  <div className="space-y-2">
-                    <Label>Blog Articles</Label>
-                    <Input 
-                      type="number" 
-                      min={1} 
-                      max={5}
-                      value={quantities.blogArticles}
-                      onChange={(e) => handleQuantityChange('blogArticles', parseInt(e.target.value) || 1)}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            <TabsContent value="bulk" className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Bulk Configuration</CardTitle>
+                    <CardDescription>Pilih tipe konten & jumlah</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Checkbox checked={bulkOptions.generateCategories} onCheckedChange={() => toggleBulkOption("generateCategories")} id="bulk-categories" />
+                        <Label htmlFor="bulk-categories">Generate Categories</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={bulkOptions.generateSubCategories}
+                          onCheckedChange={() => toggleBulkOption("generateSubCategories")}
+                          id="bulk-subcats"
+                          disabled={!bulkOptions.generateCategories}
+                        />
+                        <Label htmlFor="bulk-subcats" className={!bulkOptions.generateCategories ? "opacity-50" : ""}>
+                          Generate Sub-Categories (category_group)
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={bulkOptions.generateItems}
+                          onCheckedChange={() => toggleBulkOption("generateItems")}
+                          id="bulk-items"
+                          disabled={!bulkOptions.generateCategories}
+                        />
+                        <Label htmlFor="bulk-items" className={!bulkOptions.generateCategories ? "opacity-50" : ""}>
+                          Generate Items / Products
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox checked={bulkOptions.generateBlog} onCheckedChange={() => toggleBulkOption("generateBlog")} id="bulk-blog" />
+                        <Label htmlFor="bulk-blog">Generate Blog Articles</Label>
+                      </div>
 
-          {/* Generation Status */}
-          {generationStep && (
-            <Alert className="mt-6 border-primary bg-primary/5">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <AlertTitle>Generating Content</AlertTitle>
-              <AlertDescription>{generationStep}</AlertDescription>
-            </Alert>
-          )}
+                      <Separator />
 
-          {/* Generate Button */}
-          <div className="mt-8 flex justify-center">
-            <Button 
-              size="lg" 
-              onClick={generateContent}
-              disabled={isGenerating || (!options.generateCategories && !options.generateBlog)}
-              className="min-w-[200px]"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('ai.generating')}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {t('ai.generate')}
-                </>
-              )}
-            </Button>
-          </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={bulkOptions.seedRanking}
+                          onCheckedChange={() => toggleBulkOption("seedRanking")}
+                          id="bulk-seed"
+                          disabled={!bulkOptions.generateItems || !bulkOptions.generateCategories}
+                        />
+                        <Label
+                          htmlFor="bulk-seed"
+                          className={!bulkOptions.generateItems || !bulkOptions.generateCategories ? "opacity-50" : ""}
+                        >
+                          Generate initial ranking seed (seed_weight)
+                        </Label>
+                      </div>
 
-          {/* Summary */}
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Generation Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                {options.generateCategories && (
-                  <li>• Will generate {quantities.categories} categories in {categoryGroup}</li>
-                )}
-                {options.generateItems && (
-                  <li>• Will generate {quantities.itemsPerCategory} items per category</li>
-                )}
-                {options.seedRanking && (
-                  <li className="text-amber-600">• Will add initial vote distribution (seed data)</li>
-                )}
-                {options.generateBlog && (
-                  <li>• Will generate {quantities.blogArticles} blog articles</li>
-                )}
-                <li className="text-muted-foreground">• Images will be fetched from Unsplash (royalty-free)</li>
-              </ul>
-            </CardContent>
-          </Card>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={bulkOptions.attachImages}
+                          onCheckedChange={() => toggleBulkOption("attachImages")}
+                          id="bulk-images"
+                        />
+                        <Label htmlFor="bulk-images">Attach images (free public sources)</Label>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={bulkOptions.generateAffiliateLinks}
+                          onCheckedChange={() => toggleBulkOption("generateAffiliateLinks")}
+                          id="bulk-affiliate"
+                        />
+                        <Label htmlFor="bulk-affiliate">Generate affiliate-style links (optional)</Label>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-2">
+                      <Label>Category Group</Label>
+                      <Select value={categoryGroup} onValueChange={setCategoryGroup}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categoryGroups.map((g) => (
+                            <SelectItem key={g} value={g}>
+                              {g}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>{t("ai.language")}</Label>
+                      <Select value={language} onValueChange={(v: LanguageMode) => setLanguage(v)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="id">Indonesian</SelectItem>
+                          <SelectItem value="both">Both (EN + ID)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Number of categories</Label>
+                        <Input
+                          type="number"
+                          value={bulkQty.categories}
+                          min={1}
+                          max={50}
+                          onChange={(e) => setQty("categories", Number(e.target.value || 1))}
+                          disabled={!bulkOptions.generateCategories}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Items per category</Label>
+                        <Input
+                          type="number"
+                          value={bulkQty.itemsPerCategory}
+                          min={1}
+                          max={20}
+                          onChange={(e) => setQty("itemsPerCategory", Number(e.target.value || 1))}
+                          disabled={!bulkOptions.generateItems || !bulkOptions.generateCategories}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Sub-categories per category</Label>
+                        <Input
+                          type="number"
+                          value={bulkQty.subCategoriesPerCategory}
+                          min={0}
+                          max={20}
+                          onChange={(e) => setQty("subCategoriesPerCategory", Number(e.target.value || 0))}
+                          disabled={!bulkOptions.generateSubCategories || !bulkOptions.generateCategories}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Number of blog articles</Label>
+                        <Input
+                          type="number"
+                          value={bulkQty.blogArticles}
+                          min={0}
+                          max={20}
+                          onChange={(e) => setQty("blogArticles", Number(e.target.value || 0))}
+                          disabled={!bulkOptions.generateBlog}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5" />
+                      Preview & Confirmation
+                    </CardTitle>
+                    <CardDescription>Wajib konfirmasi sebelum insert data</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-sm space-y-2">
+                      <p>You are about to generate:</p>
+                      <ul className="list-disc list-inside text-muted-foreground">
+                        <li>{bulkSummary.cats} categories</li>
+                        <li>{bulkSummary.items} items</li>
+                        <li>{bulkSummary.blogs} blog articles</li>
+                        <li>
+                          Seed ranking data: {bulkSummary.seed ? "YES (seed_weight only, not votes)" : "NO"}
+                        </li>
+                        <li>
+                          Images from free public sources: {bulkSummary.attachImages ? "YES" : "NO"}
+                        </li>
+                      </ul>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex items-start gap-2">
+                      <Checkbox checked={confirmInsert} onCheckedChange={() => setConfirmInsert((p) => !p)} id="confirm-insert" />
+                      <Label htmlFor="confirm-insert" className="leading-snug">
+                        I understand this will insert REAL data into the database.
+                      </Label>
+                    </div>
+
+                    <Button
+                      onClick={startBulkGeneration}
+                      disabled={isGenerating || !confirmInsert}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t("ai.generating")}
+                        </>
+                      ) : (
+                        <>
+                          <ListChecks className="mr-2 h-4 w-4" />
+                          START BULK GENERATION
+                        </>
+                      )}
+                    </Button>
+
+                    {activeStep && (
+                      <Alert>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <AlertTitle>Progress</AlertTitle>
+                        <AlertDescription className="space-y-1">
+                          <div>Step: {activeStep}</div>
+                          <div>Categories: {progress.categoriesDone}/{progress.categoriesTotal}</div>
+                          <div>Items: {progress.itemsDone}/{progress.itemsTotal}</div>
+                          <div>Images: {progress.imagesDone}/{progress.imagesTotal}</div>
+                          <div>Blogs: {progress.blogsDone}/{progress.blogsTotal}</div>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div>
+                      <div className="text-sm font-medium mb-2">Logs</div>
+                      <ScrollArea className="h-64 rounded-md border">
+                        <div className="p-3 space-y-2 text-xs">
+                          {logLines.length === 0 ? (
+                            <div className="text-muted-foreground">No logs yet.</div>
+                          ) : (
+                            logLines.map((l, idx) => (
+                              <div key={idx} className="space-y-0.5">
+                                <div className="text-muted-foreground">{l.ts}</div>
+                                <div>
+                                  <span className="font-medium">[{l.step}]</span> {l.status.toUpperCase()} — {l.message}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        setBulkQty({ categories: 10, subCategoriesPerCategory: 0, itemsPerCategory: 5, blogArticles: 0 });
+                        setBulkOptions((p) => ({
+                          ...p,
+                          generateCategories: true,
+                          generateItems: true,
+                          generateBlog: false,
+                          seedRanking: false,
+                          attachImages: true,
+                        }));
+                        toast.message("Preset loaded: 10 categories + items");
+                      }}
+                    >
+                      Load preset: generate 10 content
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="single">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Single Mode</CardTitle>
+                  <CardDescription>Mode lama (akan dipertahankan sederhana)</CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Gunakan Bulk Mode untuk bootstrap data dalam jumlah besar.
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>

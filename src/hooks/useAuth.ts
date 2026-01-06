@@ -45,17 +45,25 @@ export const useAuth = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;
-        
+
         if (session?.user) {
+          // Keep loading state until role check completes to avoid "not admin" flicker.
+          setAuthState({
+            user: session.user,
+            session,
+            isLoading: true,
+            isAdmin: false,
+          });
+
           const isAdmin = await checkAdminRole(session.user.id);
-          if (isMounted) {
-            setAuthState({
-              user: session.user,
-              session,
-              isLoading: false,
-              isAdmin,
-            });
-          }
+          if (!isMounted) return;
+
+          setAuthState({
+            user: session.user,
+            session,
+            isLoading: false,
+            isAdmin,
+          });
         } else {
           setAuthState({
             user: null,
@@ -82,24 +90,25 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
-        
+
         if (session?.user) {
-          // Set user first, then check admin role
-          setAuthState(prev => ({
-            ...prev,
+          // Keep loading until role check completes to avoid route guard flicker.
+          setAuthState({
             user: session.user,
-            session: session,
-            isLoading: false,
-          }));
-          
-          // Check admin role
+            session,
+            isLoading: true,
+            isAdmin: false,
+          });
+
           const isAdmin = await checkAdminRole(session.user.id);
-          if (isMounted) {
-            setAuthState(prev => ({
-              ...prev,
-              isAdmin,
-            }));
-          }
+          if (!isMounted) return;
+
+          setAuthState({
+            user: session.user,
+            session,
+            isLoading: false,
+            isAdmin,
+          });
         } else {
           setAuthState({
             user: null,
