@@ -128,13 +128,13 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="flex items-center space-x-2">
-              <Button asChild variant="ghost" size="sm">
+              <Button asChild variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
                 <Link to="/login" className="flex items-center gap-1">
                   <LogIn className="h-4 w-4" />
                   <span>{t('nav.login')}</span>
                 </Link>
               </Button>
-              <Button asChild variant="default" size="sm">
+              <Button asChild size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
                 <Link to="/register" className="flex items-center gap-1">
                   <UserPlus className="h-4 w-4" />
                   <span>{t('nav.register')}</span>
@@ -258,18 +258,18 @@ const Navbar = () => {
               <>
                 <Button 
                   asChild 
-                  variant="ghost" 
-                  className="justify-start px-0"
+                  variant="outline" 
+                  className="justify-start border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <Link to="/login" className="text-foreground/80">
+                  <Link to="/login">
                     <LogIn className="h-4 w-4 mr-2" />
                     <span>{t('nav.login')}</span>
                   </Link>
                 </Button>
                 <Button 
                   asChild 
-                  variant="default"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <Link to="/register">
