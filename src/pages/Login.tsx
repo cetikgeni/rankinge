@@ -80,7 +80,7 @@ const Login = () => {
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="edardian@gmail.com"
+                    placeholder="email@contoh.com"
                     value={formData.email}
                     onChange={handleChange}
                     required
@@ -106,7 +106,7 @@ const Login = () => {
 
                 <Button
                   type="submit"
-                  className="w-full bg-brand-purple hover:bg-brand-purple/90"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                   disabled={isLoading}
                 >
                   <LogIn className="h-4 w-4 mr-2" />
@@ -123,7 +123,7 @@ const Login = () => {
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-center text-gray-600">
               Belum punya akun?{' '}
-              <Link to="/register" className="text-brand-purple hover:text-brand-purple/80 font-medium">
+              <Link to="/register" className="text-primary hover:text-primary/80 font-medium">
                 Daftar
               </Link>
             </div>
