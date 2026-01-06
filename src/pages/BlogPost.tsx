@@ -3,10 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Loader2, ArrowLeft, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { formatMarkdownSafe } from '@/lib/safeMarkdown';
 
 interface BlogPost {
   id: string;
@@ -122,26 +122,9 @@ const BlogPost = () => {
     );
   }
 
-  // Simple markdown-like rendering (basic)
-  const renderContent = (content: string) => {
-    return content.split('\n').map((line, index) => {
-      if (line.startsWith('# ')) {
-        return <h1 key={index} className="text-3xl font-bold mt-8 mb-4 text-foreground">{line.substring(2)}</h1>;
-      }
-      if (line.startsWith('## ')) {
-        return <h2 key={index} className="text-2xl font-bold mt-6 mb-3 text-foreground">{line.substring(3)}</h2>;
-      }
-      if (line.startsWith('### ')) {
-        return <h3 key={index} className="text-xl font-bold mt-4 mb-2 text-foreground">{line.substring(4)}</h3>;
-      }
-      if (line.startsWith('- ')) {
-        return <li key={index} className="ml-4 text-foreground">{line.substring(2)}</li>;
-      }
-      if (line.trim() === '') {
-        return <br key={index} />;
-      }
-      return <p key={index} className="mb-4 leading-relaxed text-foreground">{line}</p>;
-    });
+  // Safely render markdown content with XSS sanitization
+  const getSanitizedContent = () => {
+    return formatMarkdownSafe(getContent());
   };
 
   return (
@@ -177,9 +160,10 @@ const BlogPost = () => {
             </div>
           </header>
           
-          <div className="prose prose-lg max-w-none dark:prose-invert">
-            {renderContent(getContent())}
-          </div>
+          <div 
+            className="prose prose-lg max-w-none dark:prose-invert"
+            dangerouslySetInnerHTML={{ __html: getSanitizedContent() }}
+          />
 
           {/* Related Categories */}
           {relatedCategories.length > 0 && (
