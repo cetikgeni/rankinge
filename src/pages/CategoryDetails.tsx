@@ -14,16 +14,17 @@ import { useTranslation } from '@/contexts/LanguageContext';
 import SidebarAd from '@/components/SidebarAd';
 import LiveRankingBadge from '@/components/LiveRankingBadge';
 import AdminCategoryEditor from '@/components/admin/AdminCategoryEditor';
+import ShareButton from '@/components/ShareButton';
 import { Badge } from '@/components/ui/badge';
 
 const CategoryDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { category, isLoading, refetch } = useCategoryById(id);
-  const { userVotedItemId, vote } = useVoting(id);
+  const { userVotedItemId, vote } = useVoting(category?.id);
   const { settings } = useAppSettings();
   const { user, isAdmin } = useAuth();
-  const { items: liveItems, isLive } = useLiveRanking(id);
-  const { getMovement, lastSnapshot } = useRankingHistory(id);
+  const { items: liveItems, isLive } = useLiveRanking(category?.id);
+  const { getMovement, lastSnapshot } = useRankingHistory(category?.id);
   const { t } = useTranslation();
   
   const [items, setItems] = useState(liveItems);
@@ -140,27 +141,39 @@ const CategoryDetails = () => {
               {t('categories.backToAll')}
             </Link>
             
-            {/* Admin Edit Button */}
-            {isAdmin && category && (
-              <AdminCategoryEditor
-                category={{
-                  id: category.id,
-                  name: category.name,
-                  description: category.description,
-                  image_url: category.image_url,
-                  category_group: category.category_group,
-                }}
-                items={items.map(item => ({
-                  id: item.id,
-                  name: item.name,
-                  description: item.description,
-                  image_url: item.image_url,
-                  product_url: item.product_url,
-                  affiliate_url: item.affiliate_url,
-                }))}
-                onUpdate={refetch}
-              />
-            )}
+            <div className="flex items-center gap-2">
+              {/* Share Button */}
+              {category && (
+                <ShareButton 
+                  title={category.name}
+                  description={category.description || ''}
+                  url={window.location.href}
+                  imageUrl={category.image_url || undefined}
+                />
+              )}
+              
+              {/* Admin Edit Button */}
+              {isAdmin && category && (
+                <AdminCategoryEditor
+                  category={{
+                    id: category.id,
+                    name: category.name,
+                    description: category.description,
+                    image_url: category.image_url,
+                    category_group: category.category_group,
+                  }}
+                  items={items.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    description: item.description,
+                    image_url: item.image_url,
+                    product_url: item.product_url,
+                    affiliate_url: item.affiliate_url,
+                  }))}
+                  onUpdate={refetch}
+                />
+              )}
+            </div>
           </div>
           
           <div className="flex flex-col md:flex-row gap-8">

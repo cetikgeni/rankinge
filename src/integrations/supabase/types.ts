@@ -252,6 +252,7 @@ export type Database = {
           is_seed_content: boolean
           name: string
           parent_id: string | null
+          slug: string | null
           updated_at: string
           vote_display_mode: string | null
         }
@@ -267,6 +268,7 @@ export type Database = {
           is_seed_content?: boolean
           name: string
           parent_id?: string | null
+          slug?: string | null
           updated_at?: string
           vote_display_mode?: string | null
         }
@@ -282,6 +284,7 @@ export type Database = {
           is_seed_content?: boolean
           name?: string
           parent_id?: string | null
+          slug?: string | null
           updated_at?: string
           vote_display_mode?: string | null
         }
@@ -597,6 +600,7 @@ export type Database = {
         Args: { p_category_id: string }
         Returns: undefined
       }
+      generate_category_slug: { Args: { name: string }; Returns: string }
       generate_slug: { Args: { title: string }; Returns: string }
       has_role: {
         Args: {

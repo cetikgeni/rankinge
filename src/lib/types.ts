@@ -24,6 +24,7 @@ export interface CategorySettings {
 export interface Category {
   id: string;
   name: string;
+  slug?: string;
   description: string;
   imageUrl: string;
   items: Item[];

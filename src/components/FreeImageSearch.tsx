@@ -7,7 +7,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTranslation } from '@/contexts/LanguageContext';
 
 interface FreeImageSearchProps {
-  onImageSelected: (imageUrl: string) => void;
+  onImageSelected: (imageUrl: string, attribution?: string) => void;
+}
+
+interface ImageResult {
+  url: string;
+  source: 'unsplash' | 'pixabay' | 'collection';
+  attribution?: string;
 }
 
 // Extended image collections with many more categories and working Unsplash/Pexels URLs
@@ -350,7 +356,7 @@ export function FreeImageSearch({ onImageSelected }: FreeImageSearchProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<ImageResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
@@ -385,6 +391,29 @@ export function FreeImageSearch({ onImageSelected }: FreeImageSearchProps) {
     return null;
   };
 
+  const searchPixabay = async (query: string): Promise<ImageResult[]> => {
+    try {
+      // Pixabay API - free tier allows 100 requests per minute
+      const apiKey = ''; // Note: Users need to add their own API key for production
+      if (!apiKey) {
+        // Return empty if no API key - use collections instead
+        return [];
+      }
+      const response = await fetch(
+        `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=photo&per_page=12&safesearch=true`
+      );
+      if (!response.ok) return [];
+      const data = await response.json();
+      return (data.hits || []).map((hit: any) => ({
+        url: hit.webformatURL,
+        source: 'pixabay' as const,
+        attribution: `Photo by ${hit.user} on Pixabay`
+      }));
+    } catch {
+      return [];
+    }
+  };
+
   const searchImages = async () => {
     if (!searchQuery.trim()) return;
     
@@ -394,13 +423,24 @@ export function FreeImageSearch({ onImageSelected }: FreeImageSearchProps) {
     const matchedCollection = findMatchingCollection(searchQuery);
     
     if (matchedCollection) {
-      setImages(SAMPLE_COLLECTIONS[matchedCollection] || []);
+      const collectionImages: ImageResult[] = (SAMPLE_COLLECTIONS[matchedCollection] || []).map(url => ({
+        url,
+        source: 'unsplash' as const,
+        attribution: 'Photo from Unsplash - Free for commercial use'
+      }));
+      setImages(collectionImages);
       setSelectedCollection(matchedCollection);
     } else {
       // If no match, combine images from multiple related collections
-      const allImages: string[] = [];
+      const allImages: ImageResult[] = [];
       Object.values(SAMPLE_COLLECTIONS).forEach(imgs => {
-        allImages.push(...imgs.slice(0, 2)); // Take 2 from each
+        imgs.slice(0, 2).forEach(url => {
+          allImages.push({
+            url,
+            source: 'unsplash' as const,
+            attribution: 'Photo from Unsplash - Free for commercial use'
+          });
+        });
       });
       // Shuffle and take first 12
       const shuffled = allImages.sort(() => 0.5 - Math.random());
@@ -411,8 +451,8 @@ export function FreeImageSearch({ onImageSelected }: FreeImageSearchProps) {
     setIsLoading(false);
   };
 
-  const handleSelect = (imageUrl: string) => {
-    onImageSelected(imageUrl);
+  const handleSelect = (image: ImageResult) => {
+    onImageSelected(image.url, image.attribution);
     setIsOpen(false);
     setSearchQuery('');
     setImages([]);
@@ -424,7 +464,11 @@ export function FreeImageSearch({ onImageSelected }: FreeImageSearchProps) {
     setError(null);
     setSelectedCollection(collectionId);
     
-    const collectionImages = SAMPLE_COLLECTIONS[collectionId] || [];
+    const collectionImages: ImageResult[] = (SAMPLE_COLLECTIONS[collectionId] || []).map(url => ({
+      url,
+      source: 'unsplash' as const,
+      attribution: 'Photo from Unsplash - Free for commercial use'
+    }));
     setImages(collectionImages);
     setSearchQuery(collectionId);
     setIsLoading(false);
@@ -492,14 +536,14 @@ export function FreeImageSearch({ onImageSelected }: FreeImageSearchProps) {
               </div>
             ) : images.length > 0 ? (
               <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-                {images.map((url, index) => (
+                {images.map((image, index) => (
                   <div
                     key={index}
-                    className="aspect-video rounded-md overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                    onClick={() => handleSelect(url)}
+                    className="relative group aspect-video rounded-md overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                    onClick={() => handleSelect(image)}
                   >
                     <img
-                      src={url}
+                      src={image.url}
                       alt={`Image ${index + 1}`}
                       className="w-full h-full object-cover"
                       loading="lazy"
@@ -507,6 +551,10 @@ export function FreeImageSearch({ onImageSelected }: FreeImageSearchProps) {
                         (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&h=600&fit=crop';
                       }}
                     />
+                    {/* Attribution overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {image.source === 'pixabay' ? '📷 Pixabay' : '📷 Unsplash'}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -514,14 +562,15 @@ export function FreeImageSearch({ onImageSelected }: FreeImageSearchProps) {
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <ImageIcon className="h-12 w-12 mb-2 opacity-50" />
                 <p>{t('imageSearch.empty')}</p>
-                <p className="text-xs mt-2">Try: technology, food, nature, sports, travel...</p>
+                <p className="text-xs mt-2">Coba: technology, food, nature, sports, travel...</p>
               </div>
             )}
           </ScrollArea>
 
-          <p className="text-xs text-muted-foreground text-center">
-            {t('imageSearch.attribution')}
-          </p>
+          <div className="text-xs text-muted-foreground text-center space-y-1">
+            <p>📷 Gambar dari Unsplash & Pixabay - Gratis untuk penggunaan komersial</p>
+            <p className="text-[10px]">Atribusi disarankan saat menggunakan gambar</p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

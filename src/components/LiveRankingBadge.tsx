@@ -22,7 +22,7 @@ const LiveRankingBadge = ({ isLive, lastUpdated }: LiveRankingBadgeProps) => {
     <div className="flex items-center gap-2">
       <Badge 
         variant={isLive ? "default" : "secondary"}
-        className={isLive ? "bg-green-600 hover:bg-green-700 animate-pulse" : ""}
+        className={isLive ? "bg-red-600 hover:bg-red-700 animate-pulse" : ""}
       >
         <Radio className="h-3 w-3 mr-1" />
         {t('ranking.live')}

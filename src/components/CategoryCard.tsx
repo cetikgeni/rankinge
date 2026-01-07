@@ -70,8 +70,8 @@ const CategoryCard = ({ category }: CategoryCardProps) => {
       
       <CardFooter className="pt-2 pb-4">
         <Link 
-          to={`/categories/${category.id}`}
-          className="text-brand-purple hover:text-brand-purple/80 flex items-center text-sm font-medium transition-colors"
+          to={`/categories/${category.slug || category.id}`}
+          className="text-primary hover:text-primary/80 flex items-center text-sm font-medium transition-colors"
         >
           View details
           <ArrowRight className="ml-1 h-4 w-4" />
