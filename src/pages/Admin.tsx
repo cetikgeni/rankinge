@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, FolderOpen, FileText, Loader2, Settings, Users, Sparkles, Mail, Globe } from 'lucide-react';
+import { Shield, FolderOpen, FileText, Loader2, Settings, Users, Sparkles, Mail, Globe, Megaphone, Layers } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +13,8 @@ import AdminSettings from '@/components/admin/AdminSettings';
 import UserManagement from '@/components/admin/UserManagement';
 import StaticPagesManagement from '@/components/admin/StaticPagesManagement';
 import ContactMessages from '@/components/admin/ContactMessages';
+import CategoryGroupManagement from '@/components/admin/CategoryGroupManagement';
+import AdvertisementManagement from '@/components/admin/AdvertisementManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -32,7 +34,7 @@ const Admin = () => {
     if (authLoading) return;
 
     if (!isAdmin) {
-      toast.error('Anda tidak memiliki akses admin / You do not have admin access');
+      toast.error('Anda tidak memiliki akses admin');
       return;
     }
 
@@ -92,7 +94,7 @@ const Admin = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Anda tidak memiliki akses admin / You do not have admin access.
+                  Anda tidak memiliki akses admin.
                 </p>
 
                 <div className="text-sm space-y-1">
@@ -218,14 +220,22 @@ const Admin = () => {
           
           {/* Management Tabs */}
           <Tabs defaultValue="categories" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 max-w-3xl">
+            <TabsList className="grid w-full grid-cols-8 max-w-4xl">
               <TabsTrigger value="categories" className="flex items-center gap-2">
                 <FolderOpen className="h-4 w-4" />
                 <span className="hidden sm:inline">Kategori</span>
               </TabsTrigger>
+              <TabsTrigger value="groups" className="flex items-center gap-2">
+                <Layers className="h-4 w-4" />
+                <span className="hidden sm:inline">Grup</span>
+              </TabsTrigger>
               <TabsTrigger value="blog" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Blog</span>
+              </TabsTrigger>
+              <TabsTrigger value="ads" className="flex items-center gap-2">
+                <Megaphone className="h-4 w-4" />
+                <span className="hidden sm:inline">Iklan</span>
               </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -237,7 +247,7 @@ const Admin = () => {
               </TabsTrigger>
               <TabsTrigger value="messages" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                <span className="hidden sm:inline">Messages</span>
+                <span className="hidden sm:inline">Pesan</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
@@ -248,9 +258,17 @@ const Admin = () => {
             <TabsContent value="categories">
               <CategoryManagement />
             </TabsContent>
+
+            <TabsContent value="groups">
+              <CategoryGroupManagement />
+            </TabsContent>
             
             <TabsContent value="blog">
               <BlogManagement />
+            </TabsContent>
+
+            <TabsContent value="ads">
+              <AdvertisementManagement />
             </TabsContent>
 
             <TabsContent value="users">

@@ -14,6 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_requests: {
+        Row: {
+          admin_notes: string | null
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          plan: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          plan?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          plan?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      advertisements: {
+        Row: {
+          advertiser_email: string | null
+          advertiser_name: string | null
+          clicks: number | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          image_url: string | null
+          impressions: number | null
+          is_active: boolean | null
+          link_url: string | null
+          placement: string
+          priority: number | null
+          start_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          advertiser_email?: string | null
+          advertiser_name?: string | null
+          clicks?: number | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          impressions?: number | null
+          is_active?: boolean | null
+          link_url?: string | null
+          placement?: string
+          priority?: number | null
+          start_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          advertiser_email?: string | null
+          advertiser_name?: string | null
+          clicks?: number | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          impressions?: number | null
+          is_active?: boolean | null
+          link_url?: string | null
+          placement?: string
+          priority?: number | null
+          start_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -195,6 +294,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      category_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       contact_messages: {
         Row: {

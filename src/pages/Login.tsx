@@ -30,7 +30,7 @@ const Login = () => {
     e.preventDefault();
 
     if (!formData.email.trim() || !formData.password.trim()) {
-      toast.error('Mohon isi email & password / Please enter email & password');
+      toast.error('Mohon isi email dan password');
       return;
     }
 
@@ -47,7 +47,7 @@ const Login = () => {
       return;
     }
 
-    toast.success('Login berhasil / Signed in');
+    toast.success('Login berhasil');
     navigate('/');
   };
 
@@ -61,8 +61,8 @@ const Login = () => {
             <div className="flex justify-center mb-2">
               <BarChart className="h-8 w-8 text-brand-purple" />
             </div>
-            <CardTitle className="text-2xl">Log in</CardTitle>
-            <CardDescription>Masuk untuk akses akun Anda / Sign in to your account</CardDescription>
+            <CardTitle className="text-2xl">Masuk</CardTitle>
+            <CardDescription>Masuk untuk akses akun Anda</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
@@ -110,7 +110,7 @@ const Login = () => {
                   disabled={isLoading}
                 >
                   <LogIn className="h-4 w-4 mr-2" />
-                  {isLoading ? 'Logging in...' : 'Log in'}
+                  {isLoading ? 'Memproses...' : 'Masuk'}
                 </Button>
 
                 <div className="text-xs text-muted-foreground text-center">
