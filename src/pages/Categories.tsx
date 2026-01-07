@@ -93,14 +93,14 @@ const Categories = () => {
                             .filter(cat => cat.category_group === group.name)
                             .slice(0, 5)
                             .map(cat => (
-                              <Link
-                                key={cat.id}
-                                to={`/categories/${cat.id}`}
-                                className="block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
-                              >
-                                {cat.name}
-                              </Link>
-                            ))}
+                                              <Link
+                                                key={cat.id}
+                                                to={`/categories/${cat.slug || cat.id}`}
+                                                className="block px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"
+                                              >
+                                                {cat.name}
+                                              </Link>
+                                            ))}
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
@@ -269,7 +269,7 @@ const CategoryListItem = ({ category, voteDisplayMode, isLoggedIn }: CategoryLis
               )}
             </div>
             <Link 
-              to={`/categories/${category.id}`} 
+              to={`/categories/${category.slug || category.id}`} 
               className="text-primary text-sm flex items-center hover:underline"
             >
               View Details <ExternalLink className="h-3.5 w-3.5 ml-1" />

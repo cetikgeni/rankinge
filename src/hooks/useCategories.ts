@@ -15,6 +15,7 @@ export interface CategoryItem {
 export interface Category {
   id: string;
   name: string;
+  slug: string | null;
   description: string | null;
   image_url: string | null;
   category_group: string | null;
@@ -65,6 +66,7 @@ export function useCategories(approvedOnly = true) {
     const categoriesWithItems: Category[] = (categoriesData || []).map(cat => ({
       id: cat.id,
       name: cat.name,
+      slug: cat.slug,
       description: cat.description,
       image_url: cat.image_url,
       category_group: cat.category_group,
@@ -100,23 +102,42 @@ export function useCategories(approvedOnly = true) {
   return { categories, isLoading, refetch: fetchCategories };
 }
 
-export function useCategoryById(id: string | undefined) {
+export function useCategoryById(idOrSlug: string | undefined) {
   const [category, setCategory] = useState<Category | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchCategory = async () => {
-    if (!id) {
+    if (!idOrSlug) {
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     
-    const { data: categoryData, error: categoryError } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    // Try to find by slug first, then by id
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+    
+    let categoryData = null;
+    let categoryError = null;
+    
+    if (isUUID) {
+      const result = await supabase
+        .from('categories')
+        .select('*')
+        .eq('id', idOrSlug)
+        .maybeSingle();
+      categoryData = result.data;
+      categoryError = result.error;
+    } else {
+      // Try slug first
+      const result = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', idOrSlug)
+        .maybeSingle();
+      categoryData = result.data;
+      categoryError = result.error;
+    }
     
     if (categoryError || !categoryData) {
       console.error('Error fetching category:', categoryError);
@@ -128,7 +149,7 @@ export function useCategoryById(id: string | undefined) {
     const { data: itemsData, error: itemsError } = await supabase
       .from('items')
       .select('*')
-      .eq('category_id', id)
+      .eq('category_id', categoryData.id)
       .order('vote_count', { ascending: false });
 
     if (itemsError) {
@@ -144,7 +165,7 @@ export function useCategoryById(id: string | undefined) {
 
   useEffect(() => {
     fetchCategory();
-  }, [id]);
+  }, [idOrSlug]);
 
   return { category, isLoading, refetch: fetchCategory };
 }
