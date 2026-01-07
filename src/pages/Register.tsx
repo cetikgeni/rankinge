@@ -32,12 +32,12 @@ const Register = () => {
     e.preventDefault();
 
     if (!formData.email.trim() || !formData.password) {
-      toast.error('Mohon isi email & password / Please fill email & password');
+      toast.error('Mohon isi email dan password');
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Password tidak sama / Passwords do not match');
+      toast.error('Password tidak sama');
       return;
     }
 
@@ -60,7 +60,7 @@ const Register = () => {
       return;
     }
 
-    toast.success('Akun berhasil dibuat / Account created');
+    toast.success('Akun berhasil dibuat');
     navigate('/');
   };
 
@@ -74,8 +74,8 @@ const Register = () => {
             <div className="flex justify-center mb-2">
               <BarChart className="h-8 w-8 text-brand-purple" />
             </div>
-            <CardTitle className="text-2xl">Buat akun</CardTitle>
-            <CardDescription>Daftar dengan email & password / Sign up with email & password</CardDescription>
+            <CardTitle className="text-2xl">Buat Akun</CardTitle>
+            <CardDescription>Daftar dengan email dan password</CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
@@ -107,7 +107,7 @@ const Register = () => {
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="edardian@gmail.com"
+                    placeholder="email@contoh.com"
                     value={formData.email}
                     onChange={handleChange}
                     required
@@ -149,11 +149,11 @@ const Register = () => {
 
                 <Button
                   type="submit"
-                  className="w-full bg-brand-purple hover:bg-brand-purple/90"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                   disabled={isLoading}
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
-                  {isLoading ? 'Creating account...' : 'Create account'}
+                  {isLoading ? 'Memproses...' : 'Buat Akun'}
                 </Button>
               </div>
             </form>
@@ -162,7 +162,7 @@ const Register = () => {
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-sm text-center text-gray-600">
               Sudah punya akun?{' '}
-              <Link to="/login" className="text-brand-purple hover:text-brand-purple/80 font-medium">
+              <Link to="/login" className="text-primary hover:text-primary/80 font-medium">
                 Login
               </Link>
             </div>

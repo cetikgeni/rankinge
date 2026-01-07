@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -9,6 +9,8 @@ interface AuthState {
   isAdmin: boolean;
 }
 
+const AUTH_TIMEOUT_MS = 5000; // 5 second timeout to prevent infinite loading
+
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -16,6 +18,8 @@ export const useAuth = () => {
     isLoading: true,
     isAdmin: false,
   });
+  const timeoutRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
 
   const checkAdminRole = useCallback(async (userId: string): Promise<boolean> => {
     try {
@@ -38,26 +42,53 @@ export const useAuth = () => {
     }
   }, []);
 
+  // Clear timeout helper
+  const clearAuthTimeout = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  // Set timeout helper - forces loading to false after timeout
+  const setAuthTimeout = useCallback(() => {
+    clearAuthTimeout();
+    timeoutRef.current = window.setTimeout(() => {
+      if (mountedRef.current) {
+        console.warn('Auth timeout reached, forcing loading to false');
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+      }
+    }, AUTH_TIMEOUT_MS);
+  }, [clearAuthTimeout]);
+
   useEffect(() => {
-    let isMounted = true;
+    mountedRef.current = true;
 
     const initSession = async () => {
+      setAuthTimeout();
+      
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!isMounted) return;
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mountedRef.current) return;
 
-        if (session?.user) {
-          // Keep loading state until role check completes to avoid "not admin" flicker.
+        if (error) {
+          console.error('Error getting session:', error);
+          clearAuthTimeout();
           setAuthState({
-            user: session.user,
-            session,
-            isLoading: true,
+            user: null,
+            session: null,
+            isLoading: false,
             isAdmin: false,
           });
+          return;
+        }
 
+        if (session?.user) {
           const isAdmin = await checkAdminRole(session.user.id);
-          if (!isMounted) return;
+          if (!mountedRef.current) return;
 
+          clearAuthTimeout();
           setAuthState({
             user: session.user,
             session,
@@ -65,6 +96,7 @@ export const useAuth = () => {
             isAdmin,
           });
         } else {
+          clearAuthTimeout();
           setAuthState({
             user: null,
             session: null,
@@ -74,7 +106,8 @@ export const useAuth = () => {
         }
       } catch (error) {
         console.error('Error initializing session:', error);
-        if (isMounted) {
+        if (mountedRef.current) {
+          clearAuthTimeout();
           setAuthState({
             user: null,
             session: null,
@@ -89,20 +122,23 @@ export const useAuth = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!isMounted) return;
+        if (!mountedRef.current) return;
 
         if (session?.user) {
-          // Keep loading until role check completes to avoid route guard flicker.
-          setAuthState({
+          // Set loading but with timeout protection
+          setAuthState(prev => ({
+            ...prev,
             user: session.user,
             session,
             isLoading: true,
-            isAdmin: false,
-          });
-
+          }));
+          
+          setAuthTimeout();
           const isAdmin = await checkAdminRole(session.user.id);
-          if (!isMounted) return;
+          
+          if (!mountedRef.current) return;
 
+          clearAuthTimeout();
           setAuthState({
             user: session.user,
             session,
@@ -110,6 +146,7 @@ export const useAuth = () => {
             isAdmin,
           });
         } else {
+          clearAuthTimeout();
           setAuthState({
             user: null,
             session: null,
@@ -121,12 +158,12 @@ export const useAuth = () => {
     );
 
     return () => {
-      isMounted = false;
+      mountedRef.current = false;
+      clearAuthTimeout();
       subscription.unsubscribe();
     };
-  }, [checkAdminRole]);
+  }, [checkAdminRole, setAuthTimeout, clearAuthTimeout]);
 
-  // Provide a refresh function to manually re-check admin status
   const refreshAdminStatus = useCallback(async () => {
     if (authState.user) {
       const isAdmin = await checkAdminRole(authState.user.id);
