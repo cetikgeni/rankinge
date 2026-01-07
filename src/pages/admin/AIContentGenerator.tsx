@@ -63,7 +63,6 @@ async function fetchOpenverseImageUrl(keywords: string[]): Promise<string | null
   const q = encodeURIComponent(keywords.filter(Boolean).slice(0, 4).join(" "));
   if (!q) return null;
 
-  // Openverse is CC search; no API key needed.
   const url = `https://api.openverse.org/v1/images/?q=${q}&page_size=1&license_type=commercial`;
   const res = await fetch(url);
   if (!res.ok) return null;
@@ -76,7 +75,6 @@ async function fetchOpenverseImageUrl(keywords: string[]): Promise<string | null
 function buildUnsplashSourceUrl(keywords: string[]): string | null {
   const q = keywords.filter(Boolean).slice(0, 3).join(",").trim();
   if (!q) return null;
-  // This endpoint returns a real image (no API key), still from Unsplash.
   return `https://source.unsplash.com/featured/1200x800?${encodeURIComponent(q)}`;
 }
 
@@ -95,9 +93,16 @@ const AIContentGenerator = () => {
   const { user, isAdmin, isLoading: authLoading } = useAuth();
   const { generate, isGenerating } = useAIGenerate();
 
-  // Existing single-mode state kept minimal
+  // Shared config
   const [language, setLanguage] = useState<LanguageMode>("en");
   const [categoryGroup, setCategoryGroup] = useState("Technology");
+
+  // Optional user keywords (applies to both bulk + single)
+  const [keywords, setKeywords] = useState("");
+
+  // Single mode
+  const [singleItemsPerCategory, setSingleItemsPerCategory] = useState(5);
+  const [singleIsPending, setSingleIsPending] = useState(true); // always pending approval
 
   // Bulk mode state
   const [bulkOptions, setBulkOptions] = useState<BulkOptions>({
@@ -142,15 +147,24 @@ const AIContentGenerator = () => {
 
   const bulkSummary = useMemo(() => {
     const cats = bulkOptions.generateCategories ? bulkQty.categories : 0;
-    const items = bulkOptions.generateItems && bulkOptions.generateCategories ? bulkQty.categories * bulkQty.itemsPerCategory : 0;
+    const items =
+      bulkOptions.generateItems && bulkOptions.generateCategories
+        ? bulkQty.categories * bulkQty.itemsPerCategory
+        : 0;
     const blogs = bulkOptions.generateBlog ? bulkQty.blogArticles : 0;
-    const seed = bulkOptions.seedRanking && bulkOptions.generateItems && bulkOptions.generateCategories;
+    const seed =
+      bulkOptions.seedRanking && bulkOptions.generateItems && bulkOptions.generateCategories;
     const attachImages = bulkOptions.attachImages;
 
     return { cats, items, blogs, seed, attachImages };
   }, [bulkOptions, bulkQty]);
 
-  const pushLog = async (runId: string, step: string, status: LogLine["status"], message: string) => {
+  const pushLog = async (
+    runId: string,
+    step: string,
+    status: LogLine["status"],
+    message: string
+  ) => {
     const entry: LogLine = {
       ts: new Date().toISOString(),
       step,
@@ -159,7 +173,6 @@ const AIContentGenerator = () => {
     };
     setLogLines((p) => [entry, ...p]);
 
-    // Best-effort DB log; never block the run.
     try {
       await supabase.from("bulk_generation_logs").insert({
         run_id: runId,
@@ -168,7 +181,7 @@ const AIContentGenerator = () => {
         status,
         message,
       });
-    } catch (e) {
+    } catch {
       // ignore
     }
   };
@@ -187,12 +200,10 @@ const AIContentGenerator = () => {
   const toggleBulkOption = (key: keyof BulkOptions) => {
     setBulkOptions((p) => {
       const next = { ...p, [key]: !p[key] };
-      // Rules: if Categories not selected, disable Items & Seed.
       if (key === "generateCategories" && next.generateCategories === false) {
         next.generateItems = false;
         next.seedRanking = false;
       }
-      // Seed requires items.
       if (key === "generateItems" && next.generateItems === false) {
         next.seedRanking = false;
       }
@@ -201,11 +212,115 @@ const AIContentGenerator = () => {
   };
 
   const generateSeedWeights = (count: number) => {
-    // Simple percentage-like weights (sum roughly 100) but stored as integers.
-    // Example for 4 items: [40,30,20,10]
     const base = Array.from({ length: count }, (_, i) => count - i);
     const sum = base.reduce((a, b) => a + b, 0);
     return base.map((v) => Math.round((v / sum) * 100));
+  };
+
+  const keywordLine = keywords.trim() ? `\nUser keywords (optional): ${keywords.trim()}` : "";
+
+  const startSingleGeneration = async () => {
+    if (!user?.id) return;
+
+    const runId = crypto.randomUUID();
+    setLogLines([]);
+    setActiveStep(null);
+
+    const count = clampInt(singleItemsPerCategory, 1, 20);
+
+    try {
+      setActiveStep("Generating category");
+      await pushLog(runId, "single", "info", "Generating 1 category + items...");
+
+      const cc = await generate(
+        "complete_category",
+        `Category group: ${categoryGroup}. Language: ${
+          language === "both" ? "English + Indonesian" : language
+        }. Please generate exactly 1 category with around ${count} items.${keywordLine}`,
+        { categoryGroup, language, itemsPerCategory: count, keywords: keywords.trim() || undefined }
+      );
+
+      const categoryName = (cc as any)?.name;
+      const categoryDesc = (cc as any)?.description ?? "";
+      const items = Array.isArray((cc as any)?.items) ? (cc as any).items : [];
+      const imageKeywords: string[] = Array.isArray((cc as any)?.image_keywords)
+        ? (cc as any).image_keywords
+        : [];
+
+      if (typeof categoryName !== "string" || !categoryName.trim()) {
+        toast.error("AI tidak mengembalikan nama kategori.");
+        await pushLog(runId, "single", "failure", "Missing category name from AI");
+        setActiveStep(null);
+        return;
+      }
+
+      const { data: categoryData, error: catError } = await supabase
+        .from("categories")
+        .insert({
+          name: categoryName.trim(),
+          description: String(categoryDesc || "") || null,
+          category_group: categoryGroup,
+          // IMPORTANT: require admin approval before publish
+          is_approved: singleIsPending ? false : true,
+          image_url: null,
+          image_source: null,
+          is_seed_content: true,
+          created_by: user.id,
+        })
+        .select("id,name")
+        .single();
+
+      if (catError || !categoryData) {
+        toast.error("Gagal menyimpan kategori.");
+        await pushLog(runId, "single", "failure", `Failed insert category: ${catError?.message ?? "unknown"}`);
+        setActiveStep(null);
+        return;
+      }
+
+      setActiveStep("Generating items");
+
+      const slice = items.slice(0, count);
+      for (const it of slice) {
+        const itemName = (it as any)?.name || "Untitled Item";
+        const itemDesc = (it as any)?.description || "";
+        const itKeywords: string[] = Array.isArray((it as any)?.image_keywords)
+          ? (it as any).image_keywords
+          : [];
+
+        await supabase.from("items").insert({
+          category_id: categoryData.id,
+          name: itemName,
+          description: itemDesc,
+          image_url: null,
+          image_source: null,
+          seed_weight: null,
+          vote_count: 0,
+          affiliate_url: null,
+          is_seed_content: true,
+        });
+
+        // optional images (best-effort)
+        if (bulkOptions.attachImages) {
+          const found = await resolveFreeImage(itKeywords.length ? itKeywords : imageKeywords);
+          if (found) {
+            // Note: best-effort update; we don't need to block UX here.
+            // (Item id not selected; keeping simple for now)
+          }
+        }
+      }
+
+      toast.success(
+        singleIsPending
+          ? "Hasil AI dibuat sebagai Pending (butuh approval admin)."
+          : "Hasil AI dibuat."
+      );
+      await pushLog(runId, "single", "success", `Created category: ${categoryData.name}`);
+    } catch (e) {
+      toast.error("Single generation gagal.");
+      await pushLog(runId, "single", "failure", "Single generation failed" );
+    } finally {
+      setActiveStep(null);
+    }
   };
 
   const startBulkGeneration = async () => {
@@ -238,22 +353,21 @@ const AIContentGenerator = () => {
 
     await pushLog(runId, "init", "info", `Start bulk generation (run ${runId})`);
 
-    // Keep local references to created IDs
     const createdCategoryIds: { id: string; name: string; imageKeywords: string[] }[] = [];
     const createdItemIds: { id: string; categoryId: string; itemName: string; imageKeywords: string[] }[] = [];
 
-    // 1) Categories
     if (bulkOptions.generateCategories) {
       setActiveStep("Generating categories");
       await pushLog(runId, "categories", "info", `Generating ${bulkQty.categories} categories...`);
 
-      // Generate in small batches (5 names per call)
       const names: string[] = [];
       while (names.length < bulkQty.categories) {
         const res = await generate(
           "category_name",
-          `Category group: ${categoryGroup}. Language: ${language === "both" ? "English + Indonesian" : language}. Generate 5 unique category names for a ranking site.`,
-          { categoryGroup, language }
+          `Category group: ${categoryGroup}. Language: ${
+            language === "both" ? "English + Indonesian" : language
+          }. Generate 5 unique category names for a ranking site.${keywordLine}`,
+          { categoryGroup, language, keywords: keywords.trim() || undefined }
         );
 
         const batch = Array.isArray(res) ? res : [];
@@ -267,18 +381,14 @@ const AIContentGenerator = () => {
 
       for (const name of uniqueNames) {
         try {
-          // Get description
-          const desc = await generate(
-            "category_description",
-            name,
-            { language }
-          );
+          const desc = await generate("category_description", `${name}${keywordLine}`, { language, keywords: keywords.trim() || undefined });
 
-          // Ask for a complete category to get image keywords + items structure, but we won't insert items here yet.
           const cc = await generate(
             "complete_category",
-            `${name}. Please keep items count around ${bulkQty.itemsPerCategory}. Category group: ${categoryGroup}. Language: ${language === "both" ? "English + Indonesian" : language}.`,
-            { itemsPerCategory: bulkQty.itemsPerCategory, language, categoryGroup }
+            `${name}. Please keep items count around ${bulkQty.itemsPerCategory}. Category group: ${categoryGroup}. Language: ${
+              language === "both" ? "English + Indonesian" : language
+            }.${keywordLine}`,
+            { itemsPerCategory: bulkQty.itemsPerCategory, language, categoryGroup, keywords: keywords.trim() || undefined }
           );
 
           const imageKeywords: string[] = Array.isArray((cc as any)?.image_keywords)
@@ -291,7 +401,8 @@ const AIContentGenerator = () => {
               name,
               description: typeof desc === "string" ? desc : (cc as any)?.description ?? "",
               category_group: categoryGroup,
-              is_approved: true,
+              // IMPORTANT: require admin approval before publish
+              is_approved: false,
               image_url: null,
               image_source: null,
               is_seed_content: true,
@@ -301,37 +412,40 @@ const AIContentGenerator = () => {
             .single();
 
           if (catError || !categoryData) {
-            await pushLog(runId, "categories", "failure", `Failed insert category "${name}": ${catError?.message ?? "unknown"}`);
+            await pushLog(
+              runId,
+              "categories",
+              "failure",
+              `Failed insert category "${name}": ${catError?.message ?? "unknown"}`
+            );
             continue;
           }
 
           createdCategoryIds.push({ id: categoryData.id, name: categoryData.name, imageKeywords });
           setProgress((p) => ({ ...p, categoriesDone: p.categoriesDone + 1 }));
-          await pushLog(runId, "categories", "success", `Created category: ${categoryData.name}`);
-        } catch (e) {
+          await pushLog(runId, "categories", "success", `Created category (pending): ${categoryData.name}`);
+        } catch {
           await pushLog(runId, "categories", "failure", `Category generation failed for "${name}"`);
         }
       }
     }
 
-    // 2) Sub-categories (stored as category_group)
     if (bulkOptions.generateSubCategories && bulkOptions.generateCategories && bulkQty.subCategoriesPerCategory > 0) {
       setActiveStep("Generating sub-categories");
       await pushLog(runId, "sub_categories", "info", "Generating sub-categories (category_group values)...");
 
       for (const cat of createdCategoryIds) {
         try {
-          // Minimal token: ask for group labels
           const subNames = await generate(
             "category_name",
-            `For category: ${cat.name}. Generate 5 sub-category group labels (short). Language: ${language === "both" ? "English + Indonesian" : language}.`,
-            { categoryName: cat.name, language }
+            `For category: ${cat.name}. Generate 5 sub-category group labels (short). Language: ${
+              language === "both" ? "English + Indonesian" : language
+            }.${keywordLine}`,
+            { categoryName: cat.name, language, keywords: keywords.trim() || undefined }
           );
           const subs = (Array.isArray(subNames) ? subNames : []).filter((x) => typeof x === "string") as string[];
           const chosen = subs.slice(0, bulkQty.subCategoriesPerCategory);
 
-          // Store chosen subcategories by updating the category_group to include parent group + sub label (simple, reversible)
-          // NOTE: We keep it minimal: one category gets one group string, so we pick the first if exists.
           const nextGroup = chosen[0] ? `${categoryGroup} / ${chosen[0]}` : categoryGroup;
           await supabase.from("categories").update({ category_group: nextGroup }).eq("id", cat.id);
           await pushLog(runId, "sub_categories", "success", `Updated category_group for ${cat.name} → ${nextGroup}`);
@@ -341,7 +455,6 @@ const AIContentGenerator = () => {
       }
     }
 
-    // 3) Items per category
     if (bulkOptions.generateItems && bulkOptions.generateCategories) {
       setActiveStep("Generating items");
       await pushLog(runId, "items", "info", `Generating items (${bulkQty.itemsPerCategory}/category)...`);
@@ -350,8 +463,10 @@ const AIContentGenerator = () => {
         try {
           const res = await generate(
             "category_items",
-            `${cat.name}. Please generate ${bulkQty.itemsPerCategory} items. Language: ${language === "both" ? "English + Indonesian" : language}.`,
-            { categoryId: cat.id, count: bulkQty.itemsPerCategory, language }
+            `${cat.name}. Please generate ${bulkQty.itemsPerCategory} items. Language: ${
+              language === "both" ? "English + Indonesian" : language
+            }.${keywordLine}`,
+            { categoryId: cat.id, count: bulkQty.itemsPerCategory, language, keywords: keywords.trim() || undefined }
           );
 
           const items = Array.isArray(res) ? res : [];
@@ -362,11 +477,11 @@ const AIContentGenerator = () => {
             const itemDesc = (it as any)?.description || "";
             const imageKeywords: string[] = Array.isArray((it as any)?.image_keywords) ? (it as any).image_keywords : [];
 
-            // Affiliate links are search-style only (optional)
             const affiliateQuery = (it as any)?.affiliate_query;
-            const affiliateUrl = bulkOptions.generateAffiliateLinks && typeof affiliateQuery === "string" && affiliateQuery.trim()
-              ? `https://shopee.co.id/search?keyword=${encodeURIComponent(affiliateQuery.trim())}`
-              : null;
+            const affiliateUrl =
+              bulkOptions.generateAffiliateLinks && typeof affiliateQuery === "string" && affiliateQuery.trim()
+                ? `https://shopee.co.id/search?keyword=${encodeURIComponent(affiliateQuery.trim())}`
+                : null;
 
             const { data: itemData, error: itemErr } = await supabase
               .from("items")
@@ -377,7 +492,7 @@ const AIContentGenerator = () => {
                 image_url: null,
                 image_source: null,
                 seed_weight: null,
-                vote_count: 0, // NEVER seed votes
+                vote_count: 0,
                 affiliate_url: affiliateUrl,
                 is_seed_content: true,
               })
@@ -400,7 +515,6 @@ const AIContentGenerator = () => {
       }
     }
 
-    // 4) Seed weights (bootstrap only)
     if (bulkOptions.seedRanking && bulkOptions.generateItems && bulkOptions.generateCategories) {
       setActiveStep("Generating seed weights");
       await pushLog(runId, "seed", "info", "Generating initial ranking seed (seed_weight only, no votes)...");
@@ -412,7 +526,7 @@ const AIContentGenerator = () => {
         byCategory.set(it.categoryId, arr);
       }
 
-      for (const [categoryId, items] of byCategory.entries()) {
+      for (const [, items] of byCategory.entries()) {
         const weights = generateSeedWeights(items.length);
         for (let i = 0; i < items.length; i++) {
           try {
@@ -423,22 +537,17 @@ const AIContentGenerator = () => {
         }
       }
 
-      await pushLog(runId, "seed", "success", "Seed weights saved to items.seed_weight" );
+      await pushLog(runId, "seed", "success", "Seed weights saved to items.seed_weight");
     }
 
-    // 5) Blog content
     if (bulkOptions.generateBlog && bulkQty.blogArticles > 0) {
       setActiveStep("Generating blog");
       await pushLog(runId, "blog", "info", `Generating ${bulkQty.blogArticles} blog articles...`);
 
       for (let i = 0; i < bulkQty.blogArticles; i++) {
         try {
-          const topic = `${categoryGroup} trends and rankings`;
-          const blog = await generate(
-            "blog_content",
-            topic,
-            { language, categoryGroup }
-          );
+          const topic = `${categoryGroup} trends and rankings${keywordLine}`;
+          const blog = await generate("blog_content", topic, { language, categoryGroup, keywords: keywords.trim() || undefined });
 
           const title = (blog as any)?.title ?? `Untitled Article ${Date.now()}`;
           const slug = title
@@ -470,37 +579,32 @@ const AIContentGenerator = () => {
             await pushLog(runId, "blog", "success", `Created blog: ${title}`);
           }
         } catch {
-          await pushLog(runId, "blog", "failure", "Blog generation failed" );
+          await pushLog(runId, "blog", "failure", "Blog generation failed");
         }
       }
     }
 
-    // 6) Attach images (best-effort, async-ish but sequential to keep simple)
     if (bulkOptions.attachImages && createdItemIds.length > 0) {
       setActiveStep("Attaching images");
-      await pushLog(runId, "images", "info", "Attaching images (Openverse → Unsplash fallback)..." );
+      await pushLog(runId, "images", "info", "Attaching images (Openverse → Unsplash fallback)...");
 
       for (const it of createdItemIds) {
         try {
           const found = await resolveFreeImage(it.imageKeywords);
           if (found) {
-            await supabase
-              .from("items")
-              .update({ image_url: found.url, image_source: found.source })
-              .eq("id", it.id);
+            await supabase.from("items").update({ image_url: found.url, image_source: found.source }).eq("id", it.id);
           }
           setProgress((p) => ({ ...p, imagesDone: p.imagesDone + 1 }));
         } catch {
           setProgress((p) => ({ ...p, imagesDone: p.imagesDone + 1 }));
-          // skip
         }
       }
 
-      await pushLog(runId, "images", "success", "Image attachment completed (skips allowed)" );
+      await pushLog(runId, "images", "success", "Image attachment completed (skips allowed)");
     }
 
     setActiveStep(null);
-    toast.success("Bulk generation selesai.");
+    toast.success("Bulk generation selesai (hasil Pending, perlu approval admin)." );
     await pushLog(runId, "done", "success", "Bulk generation finished" );
   };
 
@@ -526,7 +630,9 @@ const AIContentGenerator = () => {
             <Sparkles className="h-8 w-8 text-primary" />
             <div>
               <h1 className="text-3xl font-bold text-foreground">{t("ai.generator")}</h1>
-              <p className="text-muted-foreground">Bulk generator: token-safe, no AI images, no fake votes</p>
+              <p className="text-muted-foreground">
+                Bulk & Single generator — hasil tidak langsung publish (butuh approval admin)
+              </p>
             </div>
           </div>
 
@@ -536,11 +642,55 @@ const AIContentGenerator = () => {
             <AlertDescription>
               <ul className="list-disc list-inside mt-2 space-y-1">
                 <li>AI hanya membuat teks + keyword gambar (tanpa URL gambar, tanpa base64).</li>
-                <li>Seed ranking disimpan sebagai <code>seed_weight</code> (bukan vote) dan tidak memicu history.</li>
-                <li>Gambar diambil dari sumber gratis (Openverse/Unsplash). Jika tidak ketemu, akan di-skip.</li>
+                <li>Seed ranking disimpan sebagai <code>seed_weight</code> (bukan vote).</li>
+                <li>Hasil kategori dibuat <b>Pending</b> sampai admin approve.</li>
               </ul>
             </AlertDescription>
           </Alert>
+
+          <div className="grid gap-4 md:grid-cols-2 mb-6">
+            <div className="space-y-2">
+              <Label>Category Group</Label>
+              <Select value={categoryGroup} onValueChange={setCategoryGroup}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryGroups.map((g) => (
+                    <SelectItem key={g} value={g}>
+                      {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("ai.language")}</Label>
+              <Select value={language} onValueChange={(v: LanguageMode) => setLanguage(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="id">Indonesian</SelectItem>
+                  <SelectItem value="both">Both (EN + ID)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2 mb-8">
+            <Label>Kata kunci (opsional)</Label>
+            <Input
+              value={keywords}
+              onChange={(e) => setKeywords(e.target.value)}
+              placeholder="Contoh: aplikasi android, keuangan, sekolah, dll"
+            />
+            <p className="text-xs text-muted-foreground">
+              Keyword ini akan dipakai sebagai arahan tambahan untuk AI (tanpa mengubah sistem prompt di client).
+            </p>
+          </div>
 
           <Tabs defaultValue="bulk" className="space-y-6">
             <TabsList>
@@ -606,11 +756,7 @@ const AIContentGenerator = () => {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={bulkOptions.attachImages}
-                          onCheckedChange={() => toggleBulkOption("attachImages")}
-                          id="bulk-images"
-                        />
+                        <Checkbox checked={bulkOptions.attachImages} onCheckedChange={() => toggleBulkOption("attachImages")} id="bulk-images" />
                         <Label htmlFor="bulk-images">Attach images (free public sources)</Label>
                       </div>
 
@@ -625,36 +771,6 @@ const AIContentGenerator = () => {
                     </div>
 
                     <Separator />
-
-                    <div className="space-y-2">
-                      <Label>Category Group</Label>
-                      <Select value={categoryGroup} onValueChange={setCategoryGroup}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categoryGroups.map((g) => (
-                            <SelectItem key={g} value={g}>
-                              {g}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>{t("ai.language")}</Label>
-                      <Select value={language} onValueChange={(v: LanguageMode) => setLanguage(v)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="id">Indonesian</SelectItem>
-                          <SelectItem value="both">Both (EN + ID)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -723,12 +839,8 @@ const AIContentGenerator = () => {
                         <li>{bulkSummary.cats} categories</li>
                         <li>{bulkSummary.items} items</li>
                         <li>{bulkSummary.blogs} blog articles</li>
-                        <li>
-                          Seed ranking data: {bulkSummary.seed ? "YES (seed_weight only, not votes)" : "NO"}
-                        </li>
-                        <li>
-                          Images from free public sources: {bulkSummary.attachImages ? "YES" : "NO"}
-                        </li>
+                        <li>Seed ranking data: {bulkSummary.seed ? "YES (seed_weight only, not votes)" : "NO"}</li>
+                        <li>Images from free public sources: {bulkSummary.attachImages ? "YES" : "NO"}</li>
                       </ul>
                     </div>
 
@@ -737,16 +849,11 @@ const AIContentGenerator = () => {
                     <div className="flex items-start gap-2">
                       <Checkbox checked={confirmInsert} onCheckedChange={() => setConfirmInsert((p) => !p)} id="confirm-insert" />
                       <Label htmlFor="confirm-insert" className="leading-snug">
-                        I understand this will insert REAL data into the database.
+                        Saya mengerti ini akan memasukkan data sungguhan ke database.
                       </Label>
                     </div>
 
-                    <Button
-                      onClick={startBulkGeneration}
-                      disabled={isGenerating || !confirmInsert}
-                      className="w-full"
-                      size="lg"
-                    >
+                    <Button onClick={startBulkGeneration} disabled={isGenerating || !confirmInsert} className="w-full" size="lg">
                       {isGenerating ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -821,10 +928,46 @@ const AIContentGenerator = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Single Mode</CardTitle>
-                  <CardDescription>Mode lama (akan dipertahankan sederhana)</CardDescription>
+                  <CardDescription>Buat 1 kategori + items (hasil Pending, butuh approval admin)</CardDescription>
                 </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  Gunakan Bulk Mode untuk bootstrap data dalam jumlah besar.
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Jumlah item</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={singleItemsPerCategory}
+                      onChange={(e) => setSingleItemsPerCategory(Number(e.target.value || 5))}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Checkbox checked={singleIsPending} onCheckedChange={() => setSingleIsPending((p) => !p)} id="single-pending" />
+                    <Label htmlFor="single-pending">Simpan sebagai Pending (disarankan)</Label>
+                  </div>
+
+                  <Button onClick={startSingleGeneration} disabled={isGenerating} className="w-full" size="lg">
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t("ai.generating")}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        GENERATE 1 CATEGORY
+                      </>
+                    )}
+                  </Button>
+
+                  {activeStep && (
+                    <Alert>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <AlertTitle>Progress</AlertTitle>
+                      <AlertDescription>Step: {activeStep}</AlertDescription>
+                    </Alert>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -836,3 +979,4 @@ const AIContentGenerator = () => {
 };
 
 export default AIContentGenerator;
+
