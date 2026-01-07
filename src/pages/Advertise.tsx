@@ -10,6 +10,14 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
+// Validation constants
+const MAX_NAME_LENGTH = 100;
+const MAX_COMPANY_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 255;
+const MAX_PHONE_LENGTH = 20;
+const MAX_MESSAGE_LENGTH = 5000;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const Advertise = () => {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,12 +29,46 @@ const Advertise = () => {
     phone: '',
     message: '',
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Nama wajib diisi';
+    } else if (formData.name.trim().length > MAX_NAME_LENGTH) {
+      newErrors.name = `Nama maksimal ${MAX_NAME_LENGTH} karakter`;
+    }
+
+    if (formData.company.trim().length > MAX_COMPANY_LENGTH) {
+      newErrors.company = `Nama perusahaan maksimal ${MAX_COMPANY_LENGTH} karakter`;
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email wajib diisi';
+    } else if (!EMAIL_REGEX.test(formData.email.trim())) {
+      newErrors.email = 'Format email tidak valid';
+    } else if (formData.email.trim().length > MAX_EMAIL_LENGTH) {
+      newErrors.email = `Email maksimal ${MAX_EMAIL_LENGTH} karakter`;
+    }
+
+    if (formData.phone.trim().length > MAX_PHONE_LENGTH) {
+      newErrors.phone = `Telepon maksimal ${MAX_PHONE_LENGTH} karakter`;
+    }
+
+    if (formData.message.trim().length > MAX_MESSAGE_LENGTH) {
+      newErrors.message = `Pesan maksimal ${MAX_MESSAGE_LENGTH} karakter`;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim() || !formData.email.trim()) {
-      toast.error('Mohon isi nama dan email');
+    if (!validateForm()) {
+      toast.error('Mohon perbaiki kesalahan pada formulir');
       return;
     }
 
@@ -269,8 +311,10 @@ const Advertise = () => {
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             placeholder="Nama Anda" 
-                            required 
+                            maxLength={MAX_NAME_LENGTH}
+                            className={errors.name ? 'border-destructive' : ''}
                           />
+                          {errors.name && <p className="text-sm text-destructive mt-1">{errors.name}</p>}
                         </div>
                         <div>
                           <label htmlFor="company" className="block text-sm font-medium mb-1">
@@ -281,7 +325,10 @@ const Advertise = () => {
                             value={formData.company}
                             onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                             placeholder="Nama perusahaan" 
+                            maxLength={MAX_COMPANY_LENGTH}
+                            className={errors.company ? 'border-destructive' : ''}
                           />
+                          {errors.company && <p className="text-sm text-destructive mt-1">{errors.company}</p>}
                         </div>
                       </div>
                       
@@ -296,8 +343,10 @@ const Advertise = () => {
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             placeholder="email@contoh.com" 
-                            required 
+                            maxLength={MAX_EMAIL_LENGTH}
+                            className={errors.email ? 'border-destructive' : ''}
                           />
+                          {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
                         </div>
                         <div>
                           <label htmlFor="phone" className="block text-sm font-medium mb-1">
@@ -308,21 +357,32 @@ const Advertise = () => {
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             placeholder="08123456789" 
+                            maxLength={MAX_PHONE_LENGTH}
+                            className={errors.phone ? 'border-destructive' : ''}
                           />
+                          {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone}</p>}
                         </div>
                       </div>
                       
                       <div>
-                        <label htmlFor="message" className="block text-sm font-medium mb-1">
-                          Kebutuhan Iklan Anda
-                        </label>
+                        <div className="flex justify-between items-center mb-1">
+                          <label htmlFor="message" className="block text-sm font-medium">
+                            Kebutuhan Iklan Anda
+                          </label>
+                          <span className="text-xs text-muted-foreground">
+                            {formData.message.length}/{MAX_MESSAGE_LENGTH}
+                          </span>
+                        </div>
                         <Textarea 
                           id="message" 
                           value={formData.message}
                           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                           placeholder="Jelaskan produk/layanan dan tujuan iklan Anda" 
                           rows={4}
+                          maxLength={MAX_MESSAGE_LENGTH}
+                          className={errors.message ? 'border-destructive' : ''}
                         />
+                        {errors.message && <p className="text-sm text-destructive mt-1">{errors.message}</p>}
                       </div>
                       
                       <Button 
