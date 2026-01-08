@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BarChart3, ThumbsUp, Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,16 +15,19 @@ const Index = () => {
   const { t } = useTranslation();
   const { categories, isLoading } = useCategories(true);
   
-  // Get featured categories (first 8)
-  const featuredCategories = categories.slice(0, 8);
+  // Memoize computed values to prevent unnecessary re-calculations
+  const featuredCategories = useMemo(() => categories.slice(0, 8), [categories]);
   
-  // Group categories by category_group
-  const categoryGroups = categories.reduce((acc, cat) => {
-    const group = cat.category_group || 'Other';
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(cat);
-    return acc;
-  }, {} as Record<string, typeof categories>);
+  const categoryGroups = useMemo(() => {
+    return categories.reduce((acc, cat) => {
+      const group = cat.category_group || 'Other';
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(cat);
+      return acc;
+    }, {} as Record<string, typeof categories>);
+  }, [categories]);
+  
+  const categoryGroupEntries = useMemo(() => Object.entries(categoryGroups), [categoryGroups]);
   
   if (isLoading) {
     return (
@@ -60,8 +64,14 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Categories with images */}
-      <CategoryGroup title={t('categories.featured')} categoryGroup="Technology" showImages={true} limit={4} />
+      {/* Featured Categories with images - pass categories as prop */}
+      <CategoryGroup 
+        title={t('categories.featured')} 
+        categoryGroup="Technology" 
+        categories={categories}
+        showImages={true} 
+        limit={4} 
+      />
       
       {/* Featured Categories */}
       <section className="py-16 px-4">
@@ -82,6 +92,7 @@ const Index = () => {
                   category={{
                     id: category.id,
                     name: category.name,
+                    slug: category.slug,
                     description: category.description || '',
                     imageUrl: category.image_url || '',
                     items: category.items.map(item => ({
@@ -109,12 +120,13 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Category Groups from Database */}
-      {Object.entries(categoryGroups).slice(0, 3).map(([groupName, groupCategories]) => (
+      {/* Category Groups from Database - pass categories as prop to avoid duplicate fetches */}
+      {categoryGroupEntries.slice(0, 3).map(([groupName]) => (
         <CategoryGroup 
           key={groupName} 
           title={groupName} 
-          categoryGroup={groupName} 
+          categoryGroup={groupName}
+          categories={categories}
           showImages={false} 
           limit={4} 
         />
@@ -132,7 +144,7 @@ const Index = () => {
           
           {categories.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {Object.entries(categoryGroups).map(([groupName, groupCats]) => (
+              {categoryGroupEntries.map(([groupName, groupCats]) => (
                 <div key={groupName} className="mb-8">
                   <h3 className="text-lg font-bold mb-4 text-foreground">
                     {groupName}
@@ -141,7 +153,7 @@ const Index = () => {
                     {groupCats.slice(0, 6).map(cat => (
                       <li key={cat.id}>
                         <Link 
-                          to={`/categories/${cat.id}`} 
+                          to={`/categories/${cat.slug || cat.id}`} 
                           className="text-muted-foreground hover:text-primary transition-colors text-sm"
                         >
                           {cat.name}

@@ -1,41 +1,30 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Loader2 } from 'lucide-react';
-import { useCategories } from '@/hooks/useCategories';
+import { ArrowRight } from 'lucide-react';
 import CategoryCard from '@/components/CategoryCard';
+import type { Category } from '@/hooks/useCategories';
 
 interface CategoryGroupProps {
   title: string;
   categoryGroup: string;
+  categories: Category[];
   showImages?: boolean;
   limit?: number;
 }
 
-const CategoryGroup = ({
+const CategoryGroup = memo(({
   title,
   categoryGroup,
+  categories,
   showImages = false,
   limit = 4
 }: CategoryGroupProps) => {
-  const { categories, isLoading } = useCategories(true);
-  
   // Filter categories by group
   const groupCategories = categories
     .filter(cat => cat.category_group === categoryGroup)
     .slice(0, limit);
   
   // Don't render if no categories in this group
-  if (isLoading) {
-    return (
-      <section className="py-12 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </div>
-      </section>
-    );
-  }
-  
   if (groupCategories.length === 0) {
     return null;
   }
@@ -61,6 +50,7 @@ const CategoryGroup = ({
               category={{
                 id: category.id,
                 name: category.name,
+                slug: category.slug,
                 description: category.description || '',
                 imageUrl: showImages ? (category.image_url || '') : '',
                 items: category.items.map(item => ({
@@ -80,6 +70,8 @@ const CategoryGroup = ({
       </div>
     </section>
   );
-};
+});
+
+CategoryGroup.displayName = 'CategoryGroup';
 
 export default CategoryGroup;
