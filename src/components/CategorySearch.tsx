@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +20,7 @@ interface SearchResult {
   path: string;
 }
 
-const CategorySearch = () => {
+const CategorySearch = memo(() => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -29,22 +28,20 @@ const CategorySearch = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 10;
   
-  // Get all categories and subcategories
-  const allCategories = getAllCategoryIcons();
+  // Memoize all categories to prevent recalculation
+  const allCategories = useMemo(() => getAllCategoryIcons(), []);
   
-  // Create a flat list of all search results for pagination display
-  const getAllSearchResults = (): SearchResult[] => {
+  // Memoize all search results
+  const allSearchResults = useMemo((): SearchResult[] => {
     const results: SearchResult[] = [];
     
     allCategories.forEach(category => {
-      // Add the main category
       results.push({
         name: category.name,
         type: 'category',
         path: `/categories?filter=${encodeURIComponent(category.name.toLowerCase())}`
       });
       
-      // Add all subcategories
       category.subcategories.forEach(subcategory => {
         results.push({
           name: subcategory.name,
@@ -56,7 +53,7 @@ const CategorySearch = () => {
     });
     
     return results;
-  };
+  }, [allCategories]);
   
   // Filter results based on search term
   useEffect(() => {
@@ -65,75 +62,65 @@ const CategorySearch = () => {
       return;
     }
     
-    const results: SearchResult[] = [];
-    
-    // Search for matching categories
-    allCategories.forEach(category => {
-      if (category.name.toLowerCase().includes(searchTerm.toLowerCase()) || showAllCategories) {
-        results.push({
-          name: category.name,
-          type: 'category',
-          path: `/categories?filter=${encodeURIComponent(category.name.toLowerCase())}`
-        });
-      }
-      
-      // Search for matching subcategories
-      category.subcategories.forEach(subcategory => {
-        if (subcategory.name.toLowerCase().includes(searchTerm.toLowerCase()) || showAllCategories) {
-          results.push({
-            name: subcategory.name,
-            type: 'subcategory',
-            parentCategory: category.name,
-            path: `/categories?filter=${encodeURIComponent(subcategory.name.toLowerCase())}`
-          });
-        }
-      });
-    });
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const results = allSearchResults.filter(result => 
+      showAllCategories || result.name.toLowerCase().includes(lowerSearchTerm)
+    );
     
     setSearchResults(showAllCategories ? results : results.slice(0, 10));
     if (showAllCategories) {
       setCurrentPage(1);
     }
-  }, [searchTerm, showAllCategories]);
+  }, [searchTerm, showAllCategories, allSearchResults]);
   
   // Get paginated results
-  const getPaginatedResults = () => {
-    const allResults = getAllSearchResults();
+  const paginatedResults = useMemo(() => {
     const startIndex = (currentPage - 1) * resultsPerPage;
-    return allResults.slice(startIndex, startIndex + resultsPerPage);
-  };
+    return allSearchResults.slice(startIndex, startIndex + resultsPerPage);
+  }, [allSearchResults, currentPage, resultsPerPage]);
   
   // Total pages calculation
-  const totalPages = Math.ceil(getAllSearchResults().length / resultsPerPage);
+  const totalPages = useMemo(() => 
+    Math.ceil(allSearchResults.length / resultsPerPage), 
+    [allSearchResults.length, resultsPerPage]
+  );
+  
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
+  
+  const handleFocus = useCallback(() => setIsVisible(true), []);
+  const handleBlur = useCallback(() => setTimeout(() => setIsVisible(false), 200), []);
+  const toggleShowAll = useCallback(() => setShowAllCategories(prev => !prev), []);
   
   return (
     <div className="relative max-w-md w-full mx-auto">
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
+          <Search className="h-5 w-5 text-muted-foreground" />
         </div>
         <Input
           type="text"
           placeholder="Search categories or subcategories..."
           className="pl-10"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onFocus={() => setIsVisible(true)}
-          onBlur={() => setTimeout(() => setIsVisible(false), 200)}
+          onChange={handleInputChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       </div>
       
       {isVisible && (searchResults.length > 0 || showAllCategories) && (
-        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-200 max-h-96 overflow-y-auto">
-          <div className="p-2 border-b flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-700">
+        <div className="absolute z-10 mt-1 w-full bg-card shadow-lg rounded-md border border-border max-h-96 overflow-y-auto">
+          <div className="p-2 border-b border-border flex justify-between items-center">
+            <span className="text-sm font-medium text-foreground">
               {showAllCategories 
-                ? `Showing ${getPaginatedResults().length} of ${getAllSearchResults().length} categories`
+                ? `Showing ${paginatedResults.length} of ${allSearchResults.length} categories`
                 : `Search results for "${searchTerm}"`}
             </span>
             <button
-              onClick={() => setShowAllCategories(!showAllCategories)}
-              className="text-xs text-brand-purple hover:underline"
+              onClick={toggleShowAll}
+              className="text-xs text-primary hover:underline"
             >
               {showAllCategories ? 'Hide all' : 'View all categories'}
             </button>
@@ -142,27 +129,27 @@ const CategorySearch = () => {
           {showAllCategories ? (
             <>
               <ul className="py-2">
-                {getPaginatedResults().map((result, index) => (
+                {paginatedResults.map((result, index) => (
                   <li key={`${result.type}-${result.name}-${index}`}>
                     <Link
                       to={result.path}
-                      className="block px-4 py-2 hover:bg-gray-100 transition-colors"
+                      className="block px-4 py-2 hover:bg-muted transition-colors"
                     >
                       <div className="flex justify-between items-center">
-                        <span className="font-medium">{result.name}</span>
+                        <span className="font-medium text-foreground">{result.name}</span>
                         <Badge variant="outline" className="text-xs">
                           {result.type === 'category' ? 'Category' : 'Subcategory'}
                         </Badge>
                       </div>
                       {result.type === 'subcategory' && result.parentCategory && (
-                        <div className="text-sm text-gray-500">in {result.parentCategory}</div>
+                        <div className="text-sm text-muted-foreground">in {result.parentCategory}</div>
                       )}
                     </Link>
                   </li>
                 ))}
               </ul>
               
-              <div className="border-t p-2">
+              <div className="border-t border-border p-2">
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
@@ -173,20 +160,16 @@ const CategorySearch = () => {
                     </PaginationItem>
                     
                     {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-                      // Show pages around current page
                       let pageNum = currentPage - 2 + i;
                       
-                      // Adjust if we're at the start
                       if (currentPage < 3) {
                         pageNum = i + 1;
                       }
                       
-                      // Adjust if we're at the end
                       if (currentPage > totalPages - 2) {
                         pageNum = totalPages - 4 + i;
                       }
                       
-                      // Make sure pageNum is valid
                       if (pageNum > 0 && pageNum <= totalPages) {
                         return (
                           <PaginationItem key={pageNum}>
@@ -218,11 +201,11 @@ const CategorySearch = () => {
                 <li key={index}>
                   <Link
                     to={result.path}
-                    className="block px-4 py-2 hover:bg-gray-100 transition-colors"
+                    className="block px-4 py-2 hover:bg-muted transition-colors"
                   >
-                    <div className="font-medium">{result.name}</div>
+                    <div className="font-medium text-foreground">{result.name}</div>
                     {result.type === 'subcategory' && result.parentCategory && (
-                      <div className="text-sm text-gray-500">in {result.parentCategory}</div>
+                      <div className="text-sm text-muted-foreground">in {result.parentCategory}</div>
                     )}
                   </Link>
                 </li>
@@ -233,6 +216,8 @@ const CategorySearch = () => {
       )}
     </div>
   );
-};
+});
+
+CategorySearch.displayName = 'CategorySearch';
 
 export default CategorySearch;
