@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, ArrowUp, ArrowDown, Minus, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, ArrowUp, ArrowDown, Minus, Sparkles, ExternalLink, ShoppingCart } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import VoteButton from '@/components/VoteButton';
 import ItemCard from '@/components/ItemCard';
 import { useCategoryById } from '@/hooks/useCategories';
 import { useVoting } from '@/hooks/useVoting';
@@ -263,10 +264,36 @@ const CategoryDetails = () => {
                               {item.name}
                             </h3>
                             {item.description && (
-                              <p className="text-sm text-muted-foreground truncate">
+                              <p className="text-sm text-muted-foreground line-clamp-2">
                                 {item.description}
                               </p>
                             )}
+                            
+                            {/* Product/Affiliate Links */}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {item.product_url && (
+                                <a
+                                  href={item.product_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-xs text-primary hover:underline"
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  {t('action.visitWebsite')}
+                                </a>
+                              )}
+                              {item.affiliate_url && (
+                                <a
+                                  href={item.affiliate_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+                                >
+                                  <ShoppingCart className="h-3 w-3 mr-1" />
+                                  {t('action.buy')}
+                                </a>
+                              )}
+                            </div>
                           </div>
                           
                           {/* Vote Section */}
@@ -279,33 +306,11 @@ const CategoryDetails = () => {
                                 {t('vote.votes')}
                               </span>
                             </div>
-                            <ItemCard 
-                              item={{
-                                id: item.id,
-                                name: item.name,
-                                description: item.description || '',
-                                imageUrl: item.image_url || '',
-                                voteCount: item.vote_count,
-                                productUrl: item.product_url || undefined,
-                                affiliateUrl: item.affiliate_url || undefined
-                              }}
-                              category={{
-                                id: category.id,
-                                name: category.name,
-                                description: category.description || '',
-                                imageUrl: category.image_url || '',
-                                items: [],
-                                isApproved: category.is_approved,
-                                createdBy: '',
-                                settings: { displayVoteAs: 'count' }
-                              }}
-                              rank={rank}
-                              onVote={handleVote}
-                              userVotedItemId={userVotedItemId || undefined}
-                              totalVotesInCategory={totalVotes}
-                              voteDisplayMode={settings.voteDisplayMode}
+                            <VoteButton 
+                              isVoted={isVoted}
                               isLoggedIn={!!user}
-                              compact={true}
+                              onVote={() => handleVote(item.id)}
+                              size="sm"
                             />
                           </div>
                         </div>
