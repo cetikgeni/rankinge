@@ -4,8 +4,8 @@ import { ArrowLeft, Loader2, ArrowUp, ArrowDown, Minus, Sparkles, ExternalLink, 
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import VoteButton from '@/components/VoteButton';
-import ItemCard from '@/components/ItemCard';
-import { useCategoryById } from '@/hooks/useCategories';
+import ExpandableDescription from '@/components/ExpandableDescription';
+import { useCategoryById, useCategories } from '@/hooks/useCategories';
 import { useVoting } from '@/hooks/useVoting';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,13 +17,15 @@ import LiveRankingBadge from '@/components/LiveRankingBadge';
 import AdminCategoryEditor from '@/components/admin/AdminCategoryEditor';
 import ShareButton from '@/components/ShareButton';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const CategoryDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { category, isLoading, refetch } = useCategoryById(id);
+  const { categories } = useCategories(true);
   const { userVotedItemId, vote } = useVoting(category?.id);
   const { settings } = useAppSettings();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const { items: liveItems, isLive } = useLiveRanking(category?.id);
   const { getMovement, lastSnapshot } = useRankingHistory(category?.id);
   const { t } = useTranslation();
@@ -46,7 +48,17 @@ const CategoryDetails = () => {
     }
   };
 
-  if (isLoading) {
+  // Get related categories (same category_group, exclude current)
+  const relatedCategories = categories
+    .filter(cat => 
+      cat.category_group === category?.category_group && 
+      cat.id !== category?.id &&
+      cat.is_approved
+    )
+    .slice(0, 4);
+
+  // Show loading only if auth is still loading after a reasonable time
+  if (isLoading || (authLoading && !category)) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
@@ -75,6 +87,20 @@ const CategoryDetails = () => {
   }
   
   const totalVotes = items.reduce((sum, item) => sum + item.vote_count, 0);
+
+  // Vote display helper - respects admin settings
+  const getVoteDisplay = (voteCount: number) => {
+    const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+    switch (settings.voteDisplayMode) {
+      case 'count':
+        return `${voteCount} ${t('vote.votes')}`;
+      case 'both':
+        return `${percentage}% (${voteCount})`;
+      case 'percentage':
+      default:
+        return `${percentage}%`;
+    }
+  };
   
   // Render movement indicator like professional sports rankings
   const renderMovement = (itemId: string, currentRank: number) => {
@@ -131,12 +157,12 @@ const CategoryDetails = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
-      <main className="flex-grow py-10 px-4 bg-muted/30">
+      <main className="flex-grow py-6 md:py-10 px-3 md:px-4 bg-muted/30">
         <div className="container mx-auto max-w-7xl">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
             <Link 
               to="/categories" 
-              className="inline-flex items-center text-primary hover:text-primary/80"
+              className="inline-flex items-center text-primary hover:text-primary/80 text-sm"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t('categories.backToAll')}
@@ -177,30 +203,33 @@ const CategoryDetails = () => {
             </div>
           </div>
           
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="md:w-3/4">
-              <div className="relative h-64 rounded-lg overflow-hidden mb-8">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+            <div className="lg:w-3/4">
+              {/* Hero Image - Mobile optimized */}
+              <div className="relative h-40 sm:h-52 md:h-64 rounded-lg overflow-hidden mb-6 md:mb-8">
                 <img 
                   src={category.image_url || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800'} 
                   alt={category.name} 
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                  <div className="p-6 text-white">
-                    <h1 className="text-3xl font-bold mb-2">{category.name}</h1>
-                    <p className="text-white/90">{category.description}</p>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+                  <div className="p-4 md:p-6 text-white">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 md:mb-2">{category.name}</h1>
+                    <p className="text-white/90 text-sm md:text-base line-clamp-2">{category.description}</p>
                   </div>
                 </div>
               </div>
               
               {!category.is_approved && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 rounded-md p-4 mb-8">
-                  <p className="font-medium">{t('status.pendingApproval')}</p>
-                  <p className="text-sm">{t('status.pendingDesc')}</p>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 rounded-md p-3 md:p-4 mb-6 md:mb-8">
+                  <p className="font-medium text-sm md:text-base">{t('status.pendingApproval')}</p>
+                  <p className="text-xs md:text-sm">{t('status.pendingDesc')}</p>
                 </div>
               )}
               
-              <div className="bg-card rounded-md p-4 mb-8 shadow-sm">
+              {/* Voting Rules - Hidden on mobile by default */}
+              <div className="hidden sm:block bg-card rounded-md p-4 mb-6 md:mb-8 shadow-sm">
                 <h2 className="text-lg font-medium mb-2">{t('vote.rules')}</h2>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• {t('vote.rule1')}</li>
@@ -212,9 +241,9 @@ const CategoryDetails = () => {
               
               {/* Professional Sports-style Ranking */}
               <div className="bg-card rounded-lg shadow-sm overflow-hidden">
-                <div className="bg-primary text-primary-foreground px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold uppercase tracking-wide">
+                <div className="bg-primary text-primary-foreground px-4 md:px-6 py-3 md:py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <h2 className="text-base sm:text-lg md:text-xl font-bold uppercase tracking-wide">
                       {category.name.toUpperCase()} - {t('ranking.title').toUpperCase()}
                     </h2>
                     <LiveRankingBadge isLive={isLive} lastUpdated={lastSnapshot} />
@@ -234,43 +263,59 @@ const CategoryDetails = () => {
                       return (
                         <div 
                           key={item.id} 
-                          className={`flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors ${isVoted ? 'bg-primary/5' : ''}`}
+                          className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-3 sm:px-6 py-3 sm:py-4 hover:bg-muted/50 transition-colors ${isVoted ? 'bg-primary/5' : ''}`}
                         >
-                          {/* Rank Number */}
-                          <div className="flex items-center gap-3 min-w-[80px]">
-                            <span className={`text-2xl font-bold tabular-nums ${
-                              rank === 1 ? 'text-yellow-500' : 
-                              rank === 2 ? 'text-gray-400' : 
-                              rank === 3 ? 'text-amber-600' : 
-                              'text-muted-foreground'
-                            }`}>
-                              {String(rank).padStart(2, '0')}
-                            </span>
-                            {renderMovement(item.id, rank)}
-                          </div>
-                          
-                          {/* Item Image */}
-                          <div className="w-16 h-12 rounded overflow-hidden flex-shrink-0 border border-border">
-                            <img 
-                              src={item.image_url || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=200'} 
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          
-                          {/* Item Info */}
-                          <div className="flex-grow min-w-0">
-                            <h3 className="font-bold text-foreground truncate">
-                              {item.name}
-                            </h3>
-                            {item.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {item.description}
-                              </p>
-                            )}
+                          {/* Mobile: Top Row - Rank, Image, Name */}
+                          <div className="flex items-center gap-3 flex-grow min-w-0">
+                            {/* Rank Number */}
+                            <div className="flex items-center gap-2 min-w-[50px] sm:min-w-[80px]">
+                              <span className={`text-xl sm:text-2xl font-bold tabular-nums ${
+                                rank === 1 ? 'text-yellow-500' : 
+                                rank === 2 ? 'text-gray-400' : 
+                                rank === 3 ? 'text-amber-600' : 
+                                'text-muted-foreground'
+                              }`}>
+                                {String(rank).padStart(2, '0')}
+                              </span>
+                              <div className="hidden sm:block">
+                                {renderMovement(item.id, rank)}
+                              </div>
+                            </div>
                             
+                            {/* Item Image */}
+                            <div className="w-12 h-12 sm:w-16 sm:h-12 rounded overflow-hidden flex-shrink-0 border border-border">
+                              <img 
+                                src={item.image_url || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=200'} 
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                            
+                            {/* Item Info */}
+                            <div className="flex-grow min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-foreground text-sm sm:text-base truncate">
+                                  {item.name}
+                                </h3>
+                                <div className="sm:hidden">
+                                  {renderMovement(item.id, rank)}
+                                </div>
+                              </div>
+                              {item.description && (
+                                <ExpandableDescription 
+                                  text={item.description}
+                                  maxLines={2}
+                                  className="hidden sm:block"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Mobile: Bottom Row - Links, Vote count, Vote button */}
+                          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 ml-[62px] sm:ml-0">
                             {/* Product/Affiliate Links */}
-                            <div className="flex flex-wrap gap-2 mt-2">
+                            <div className="flex flex-wrap gap-2">
                               {item.product_url && (
                                 <a
                                   href={item.product_url}
@@ -279,7 +324,8 @@ const CategoryDetails = () => {
                                   className="inline-flex items-center text-xs text-primary hover:underline"
                                 >
                                   <ExternalLink className="h-3 w-3 mr-1" />
-                                  {t('action.visitWebsite')}
+                                  <span className="hidden sm:inline">{t('action.visitWebsite')}</span>
+                                  <span className="sm:hidden">Visit</span>
                                 </a>
                               )}
                               {item.affiliate_url && (
@@ -294,24 +340,21 @@ const CategoryDetails = () => {
                                 </a>
                               )}
                             </div>
-                          </div>
-                          
-                          {/* Vote Section */}
-                          <div className="flex items-center gap-4 flex-shrink-0">
-                            <div className="text-right">
-                              <span className="text-lg font-bold text-foreground">
-                                {item.vote_count}
-                              </span>
-                              <span className="text-xs text-muted-foreground ml-1">
-                                {t('vote.votes')}
-                              </span>
+                            
+                            {/* Vote Section */}
+                            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                              <div className="text-right">
+                                <span className="text-sm sm:text-lg font-bold text-foreground">
+                                  {getVoteDisplay(item.vote_count)}
+                                </span>
+                              </div>
+                              <VoteButton 
+                                isVoted={isVoted}
+                                isLoggedIn={!!user}
+                                onVote={() => handleVote(item.id)}
+                                size="sm"
+                              />
                             </div>
-                            <VoteButton 
-                              isVoted={isVoted}
-                              isLoggedIn={!!user}
-                              onVote={() => handleVote(item.id)}
-                              size="sm"
-                            />
                           </div>
                         </div>
                       );
@@ -320,15 +363,47 @@ const CategoryDetails = () => {
                 </div>
                 
                 {/* Affiliate Disclosure */}
-                <div className="px-6 py-4 border-t border-border bg-muted/30">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border bg-muted/30">
                   <p className="text-xs text-muted-foreground italic">
                     {t('footer.affiliate')}
                   </p>
                 </div>
               </div>
+              
+              {/* Related Categories Section */}
+              {relatedCategories.length > 0 && (
+                <div className="mt-6 md:mt-8">
+                  <h2 className="text-xl font-bold mb-4">{t('blog.relatedCategories')}</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {relatedCategories.map((relCat) => (
+                      <Link
+                        key={relCat.id}
+                        to={`/categories/${relCat.slug || relCat.id}`}
+                        className="bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        <div className="relative h-24 sm:h-32">
+                          <img
+                            src={relCat.image_url || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=400'}
+                            alt={relCat.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+                            <div className="p-3">
+                              <h3 className="text-white font-bold text-sm sm:text-base">{relCat.name}</h3>
+                              <p className="text-white/80 text-xs line-clamp-1">{relCat.items?.length || 0} items</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             
-            <div className="md:w-1/4 space-y-6">
+            {/* Sidebar - Hidden on mobile, shown on lg */}
+            <div className="hidden lg:block lg:w-1/4 space-y-6">
               <div className="bg-card p-4 rounded-lg shadow-sm">
                 <h2 className="font-bold text-lg mb-4">{t('ranking.about')}</h2>
                 <div className="space-y-3 text-sm">

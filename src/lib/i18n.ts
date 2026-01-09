@@ -107,6 +107,18 @@ export const translations = {
   'action.create': { en: 'Create', id: 'Buat' },
   'action.edit': { en: 'Edit', id: 'Ubah' },
   'action.delete': { en: 'Delete', id: 'Hapus' },
+  'action.showMore': { en: 'Show more', id: 'Tampilkan lebih' },
+  'action.showLess': { en: 'Show less', id: 'Tampilkan sedikit' },
+  
+  // Share
+  'share.button': { en: 'Share', id: 'Bagikan' },
+  'share.copyLink': { en: 'Copy Link', id: 'Salin Link' },
+  'share.copyWithText': { en: 'Copy with Text', id: 'Salin dengan Teks' },
+  'share.linkCopied': { en: 'Link copied to clipboard', id: 'Link disalin ke clipboard' },
+  'share.textCopied': { en: 'Share text copied to clipboard', id: 'Teks share disalin ke clipboard' },
+  'share.copyFailed': { en: 'Failed to copy', id: 'Gagal menyalin' },
+  'share.other': { en: 'More...', id: 'Lainnya...' },
+  'share.viewRanking': { en: 'View the full ranking and vote now!', id: 'Lihat ranking lengkap dan vote sekarang!' },
   
   // Status
   'status.loading': { en: 'Loading...', id: 'Memuat...' },
