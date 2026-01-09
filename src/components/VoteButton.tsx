@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Check, ThumbsUp } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
@@ -13,9 +14,13 @@ interface VoteButtonProps {
 const VoteButton = ({ isVoted, isLoggedIn, onVote, size = 'default' }: VoteButtonProps) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const handleVote = () => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
     
     setIsAnimating(true);
     onVote();
@@ -31,7 +36,7 @@ const VoteButton = ({ isVoted, isLoggedIn, onVote, size = 'default' }: VoteButto
       <Button 
         variant="outline" 
         size={size} 
-        disabled 
+        onClick={() => navigate('/login')}
         className="w-full md:w-auto text-sm"
       >
         <ThumbsUp className="h-4 w-4 mr-2" />

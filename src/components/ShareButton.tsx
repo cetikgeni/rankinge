@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ShareButtonProps {
   title: string;
@@ -18,26 +19,27 @@ interface ShareButtonProps {
 
 const ShareButton = ({ title, description, url, imageUrl }: ShareButtonProps) => {
   const [copied, setCopied] = useState(false);
+  const { t } = useTranslation();
 
-  const shareText = `🏆 ${title}\n\n${description || ''}\n\nLihat ranking lengkap dan vote sekarang!\n${url}`;
+  const shareText = `🏆 ${title}\n\n${description || ''}\n\n${t('share.viewRanking')}\n${url}`;
   
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success('Link disalin ke clipboard');
+      toast.success(t('share.linkCopied'));
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error('Gagal menyalin link');
+      toast.error(t('share.copyFailed'));
     }
   };
 
   const handleCopyWithText = async () => {
     try {
       await navigator.clipboard.writeText(shareText);
-      toast.success('Teks share disalin ke clipboard');
+      toast.success(t('share.textCopied'));
     } catch (error) {
-      toast.error('Gagal menyalin teks');
+      toast.error(t('share.copyFailed'));
     }
   };
 
@@ -75,17 +77,17 @@ const ShareButton = ({ title, description, url, imageUrl }: ShareButtonProps) =>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Share2 className="h-4 w-4" />
-          Bagikan
+          <span className="hidden sm:inline">{t('share.button')}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 bg-background border shadow-lg z-50">
         <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
           {copied ? <Check className="h-4 w-4 mr-2 text-green-600" /> : <Copy className="h-4 w-4 mr-2" />}
-          Salin Link
+          {t('share.copyLink')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleCopyWithText} className="cursor-pointer">
           <Copy className="h-4 w-4 mr-2" />
-          Salin dengan Teks
+          {t('share.copyWithText')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={shareToFacebook} className="cursor-pointer">
           <Facebook className="h-4 w-4 mr-2 text-blue-600" />
@@ -102,7 +104,7 @@ const ShareButton = ({ title, description, url, imageUrl }: ShareButtonProps) =>
         {navigator.share && (
           <DropdownMenuItem onClick={handleNativeShare} className="cursor-pointer">
             <Share2 className="h-4 w-4 mr-2" />
-            Lainnya...
+            {t('share.other')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>
